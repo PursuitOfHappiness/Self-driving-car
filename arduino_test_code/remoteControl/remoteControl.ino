@@ -1,7 +1,7 @@
 // --------- //
 // Libraries //
 // --------- //
-#include <Smartcar.h> //Including Dimitri's library
+#include <Servo.h> 
 
 // --------- //
 // Constants //
@@ -14,42 +14,48 @@ const int escPin = 0; //pin to which the ESC is attached
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
-Car porsche(useServo(servoPin), useESC(escPin)); //instantiation of the car
-
-  int servo;
-  int esc;
+Servo motor, steering;
   
 void setup() {
-  // put your setup code here, to run once:
-
-  porsche.begin();
-
   //SERIAL CONNECTION
   Serial.begin(9600);
+
+  motor.attach(escPin);
+  motor.write(90);  // set servo to mid-point
+  steering.attach(servoPin);
+  steering.write(90);  // set servo to mid-point
 }
 
 void loop() {
-  // put your main code here, to run repeatedly:
-  handleInput();
-  //porsche.setSpeed(80);
-  //analogWrite(0);
+  motor.write(120); // set motor to go forward at 1/3 speed
+  //motor.write(60);  // set motor to go backwards at 1/3 speed
+  //motor.write(90);  // stop motor
+  //steering.write(120); // steer right? 1/3 of max
+  //steering.write(60); // steer left? 1/3 of max
+  //steering.write(90); // straight
+  //handleInput();
+  
 }
 
 void handleInput() { //handle serial input if there is any
   if (Serial.available()) {
     String input = Serial.readStringUntil('\n');
     if (input.startsWith("w")) {
-      porsche.go(5);
+      motor.write(120);
       Serial.println("Going forward");
     }else if (input.startsWith("s")){
-      porsche.stop();
+      motor.write(60);
+      Serial.println("Going Backwards");
+    }else if (input.startsWith("q")){
+      motor.write(90);
       Serial.println("Stopping");
     }else if (input.startsWith("a")){
-      porsche.rotate(-90);
+      steering.write(120);
       Serial.println("Turning Left");
     }else if (input.startsWith("d")){
-      porsche.rotate(90);
+      steering.write(120);
       Serial.println("Turning Right");
     }
   }
 }
+
