@@ -46,20 +46,20 @@ void loop() {
 }
 
 void rcControl(){
-  steer = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);
   velocity = pulseIn(rcPinESC, HIGH, 25000);
   int i;
-  int[10] steerVals = {90};
+  int steerVals[10] = {90};
   for(i = 0; i < 10; i++){
-    steerVals[i] = steer;
+    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
   }
   steer = median(steerVals, 10) + 7;
+  velocity = map(velocity, 1000, 1500, 0, 150);
   Serial.print("steer ");
   Serial.println(steer);
   Serial.print("velocity ");
   Serial.println(velocity);
   steering.write(steer);
-  motor.writeMicroseconds(3000 - velocity);
+  motor.writeMicroseconds(1650 - velocity);
 }
 
 void manualControl(){
