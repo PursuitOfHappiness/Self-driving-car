@@ -49,16 +49,16 @@ void rcControl(){
   steer = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);
   velocity = pulseIn(rcPinESC, HIGH, 25000);
   int i;
-  int sum = 0;
+  int[10] steerVals = {90};
   for(i = 0; i < 10; i++){
-    sum += steer;
+    steerVals[i] = steer;
   }
-  sum = sum / 10 + 7;
+  steer = median(steerVals, 10) + 7;
   Serial.print("steer ");
-  Serial.println(floor(sum));
+  Serial.println(steer);
   Serial.print("velocity ");
   Serial.println(velocity);
-  steering.write(floor(sum));
+  steering.write(steer);
   motor.writeMicroseconds(3000 - velocity);
 }
 
@@ -123,5 +123,23 @@ void calibrateESC() {
         Serial.println("Neutral");
       }
   }
+}
+
+int median(int vals[], int len) {
+  int minimum = vals[0];
+  int maximum = vals[0];
+  int sum = 0;
+  int median = 90;
+  for (int i = 0; i < len; i ++) {
+    if (vals[i] < minimum) {
+      minimum = vals[i];
+    } else if (vals[i] > maximum) {
+      maximum = vals[i];
+    }
+    sum += vals[i];
+  }
+  sum = sum - (minimum + maximum);
+  median = floor(sum / (len-2));
+  return median;
 }
 
