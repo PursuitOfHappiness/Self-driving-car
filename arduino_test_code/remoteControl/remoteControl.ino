@@ -9,15 +9,15 @@
 const int servoPin = 9; // pin to which the servo motor is attached
 const int escPin = 6; // pin to which the ESC is attached
 const int rcPinSteer = 3; // rc steering
-const int rcPinESC = 5;  // rc motor
+const int rcPinESC = 19;  // rc motor
 
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
 Servo motor, steering;
-unsigned long rcControllerFlag;
+unsigned long rcControllerFlag, distance1, distance2;
 String input;
-int steer, velocity;
+int steer, velocity, controlFlag;
 
 void setup() {
   //SERIAL CONNECTION
@@ -27,25 +27,43 @@ void setup() {
   motor.writeMicroseconds(1500);  // set servo to mid-point
   steering.attach(servoPin);
   steering.write(90);  // set servo to mid-point
+  attachInterrupt(digitalPinToInterrupt(18), wheelDistance1, HIGH);
+  attachInterrupt(digitalPinToInterrupt(19), wheelDistance2, HIGH);
+  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING);
   rcControllerFlag = 0;
+  controlFlag = 1;
+  distance1 = 0;
+  distance2 = 0;
 }
 
 void loop() {
-  rcControllerFlag = pulseIn(rcPinSteer, HIGH, 25000); // if the timeout is lower it sometimes time out before getting a value
+  //rcControllerFlag = pulseIn(rcPinSteer, HIGH, 25000); // if the timeout is lower it sometimes time out before getting a value
   //Serial.print("Pulse read: ");
   //Serial.println(rcControllerFlag);
-  if(rcControllerFlag > 0){
-    //motor.writeMicroseconds(1500);
-    //steering.write(90);
-    rcControl();
+  if(rcControllerFlag == 1){
+    //rcControl();
+    //controlFlag = 0;
+    motor.writeMicroseconds(1500);
+    steering.write(90);
+    if (pulseIn(rcPinSteer, LOW, 25000) == 0){
+      rcControllerFlag = 0;
+      Serial.print("RC control set to off!");
+    }
+  }else if(controlFlag == 0){
+    motor.writeMicroseconds(1500);
+    steering.write(90);
+    controlFlag = 1;
   }else{
-
     manualControl();
     //handleInput();
   }
+  //Serial.println("Odometer counter: ");
+  //Serial.println(distance1);
+  //Serial.println(distance2);
 }
 
 void rcControl(){
+  Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000);
   int i;
   int steerVals[10] = {90};
@@ -60,17 +78,23 @@ void rcControl(){
   Serial.println(velocity);
   steering.write(steer);
   motor.writeMicroseconds(1650 - velocity);
+  int temp = pulseIn(rcPinSteer, LOW, 25000);
+  Serial.println(temp);
+  if (pulseIn(rcPinSteer, LOW, 25000) == 0){
+    rcControllerFlag = 0;
+    Serial.print("RC control set to off!");
+  }
 }
 
 void manualControl(){
   if (Serial.available()){
     input = Serial.readStringUntil('\n');
     
-    if (input.startsWith("s")){  // steering
+    if (input.startsWith("t")){  // turning
       steer = input.substring(1).toInt();
       if (steer <= 180 && steer >=0){  // check that the value is in range
         steering.write(steer);
-        Serial.println("Steering set to: ");
+        Serial.println("Turning set to: ");
         Serial.println(steer);
       }
     }else if (input.startsWith("v")){  // velocity
@@ -141,5 +165,15 @@ int median(int vals[], int len) {
   sum = sum - (minimum + maximum);
   median = floor(sum / (len-2));
   return median;
+}
+
+void wheelDistance1(){
+  distance1++;
+}
+void wheelDistance2(){
+  distance2++;
+}
+void rcControllerInterrupt(){
+  rcControllerFlag = 1;
 }
 
