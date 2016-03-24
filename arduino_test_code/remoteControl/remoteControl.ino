@@ -6,7 +6,7 @@
 // --------- //
 // Constants //
 // --------- //
-const int servoPin = 9; // pin to which the servo motor is attached
+const int servoPin = 5; // pin to which the servo motor is attached
 const int escPin = 6; // pin to which the ESC is attached
 const int rcPinSteer = 3; // rc steering
 const int rcPinESC = 19;  // rc motor
