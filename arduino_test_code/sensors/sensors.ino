@@ -6,18 +6,18 @@
 // --------- //
 // Constants //
 // --------- //
-//MOTOR
+//MOTOR -- Digital
 const int servoPin = 5; //pin to which the servo motor is attached
 const int escPin = 6; //pin to which the ESC is attached
 
-//SONARS
-unsigned short sonarFrontAddress = 0x70; //address to which the front sonar sensor is attached
-unsigned short sonarRightAddress = 0x71;
+//SONARS  -- I2C
+unsigned short sonarFrontAddress = 0x73; //pin to which the front sonar sensor is attached 
+unsigned short sonarRightAddress = 0x70; //pin to which the front right sonar sensor is attached
 
-//INFRAREDS
-const int irFrontRightPin = 0;
-const int irRearRightPin = 11;
-const int irRearCenterPin  = 9;
+//INFRAREDS  -- Analog
+const int irFrontRightPin = 0;     //pin to which the front right infrared sensor is attached 
+const int irRearRightPin = 1;      //pin to which the rear right infrared sensor is attached 
+const int irRearCenterPin  = 2;    //pin to which the rear infrared sensor is attached 
 
 //WHEEL ENCODERS
 const int pulsesPerMeter = 150;
@@ -30,7 +30,7 @@ const int encoderLeftPin = 8;
 Car porsche(useServo(servoPin), useESC(escPin)); //instantiation of the car
 
 //SONARS
-SRF08 sonarFront;
+SRF08 sonarFront;              
 SRF08 sonarRight;
 
 //INFRAREDS
@@ -71,19 +71,23 @@ void setup() {
 void loop() {
   // put your main code here, to run repeatedly:
   printSonarFront();
+//  printSonarRight();
+ // printIrFrontRight();
+ // printIrRearRight();
+ // printIrRearCenter();
   
-
 }
 
 void printSonarFront() {
   int distance = sonarFront.getDistance(); //get distance detected by sonarFront
-  Serial.print("IR Front Right ");
+  Serial.print("Sonar Front ");
   Serial.println(distance); // print the traveled distance
   delay(200); //run the above every 200 milliseconds
 }
 
 void printSonarRight() {
-  int distance = sonarRight.getDistance(); //get distance detected by sonarRight
+  int distance = sonarRight.getDistance();//get distance detected by sonarRight
+   Serial.print("Sonar Right ");
   Serial.println(distance); // print the traveled distance
   delay(200); //run the above every 200 milliseconds
 }
