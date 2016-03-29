@@ -9,7 +9,7 @@
 const int servoPin = 5; // pin to which the servo motor is attached
 const int escPin = 6; // pin to which the ESC is attached
 const int rcPinSteer = 3; // rc steering
-const int rcPinESC = 19;  // rc motor
+const int rcPinESC = 22;  // rc motor
 
 // ----------------------- //
 // Instatiation of objects //
@@ -24,9 +24,9 @@ void setup() {
   Serial.begin(9600);
 
   motor.attach(escPin);
-  motor.writeMicroseconds(1500);  // set servo to mid-point
+  motor.writeMicroseconds(1500);  // set motor to neutral
   steering.attach(servoPin);
-  steering.write(90);  // set servo to mid-point
+  steering.write(90);  // set servo to neutral
   attachInterrupt(digitalPinToInterrupt(18), wheelDistance1, HIGH);
   attachInterrupt(digitalPinToInterrupt(19), wheelDistance2, HIGH);
   attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING);
