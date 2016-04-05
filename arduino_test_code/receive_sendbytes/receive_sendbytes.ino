@@ -5,7 +5,7 @@ void setup() {
   Serial.begin(9600);    // serial / USB port
 }
 
-byte in_byte = 0;        // stores received byte
+byte in_byte[3] = 0;        // stores received byte
 
 void loop() {
   // check if byte available from USB port
