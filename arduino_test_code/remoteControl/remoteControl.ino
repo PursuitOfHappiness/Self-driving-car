@@ -2,44 +2,93 @@
 // Libraries //
 // --------- //
 #include <Servo.h> 
+#include <Smartcar.h> //Including Dimitri's library for sensors
+#include <Netstrings.h> //Include Dimitri's library for netstrings
 
 // --------- //
 // Constants //
 // --------- //
-const int servoPin = 5; // pin to which the servo motor is attached
-const int escPin = 6; // pin to which the ESC is attached
+//SERVO
 const int rcPinSteer = 3; // rc steering
 const int rcPinESC = 22;  // rc motor
+
+//MOTOR -- Digital
+const int servoPin = 5; //pin to which the servo motor is attached
+const int escPin = 6; //pin to which the ESC is attached
+
+//SONARS  -- I2C
+unsigned short sonarFrontAddress = 0x73; //pin to which the front sonar sensor is attached 
+unsigned short sonarRightAddress = 0x70; //pin to which the front right sonar sensor is attached
+
+//INFRAREDS  -- Analog
+const int irFrontRightPin = 0;     //pin to which the front right infrared sensor is attached 
+const int irRearRightPin = 1;      //pin to which the rear right infrared sensor is attached 
+const int irRearCenterPin  = 2;    //pin to which the rear infrared sensor is attached 
+
+//WHEEL ENCODERS
+const int pulsesPerMeter = 150;
+const int encoderRightPin = 18;
+const int encoderLeftPin = 19;
+
+String USF = "";
+String USR = "";
+String IRFR = "";
+String IRRR = "";
+String IRRC = "";
+String temp = "";
 
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
 Servo motor, steering;
-unsigned long rcControllerFlag, distance1, distance2;
+unsigned long rcControllerFlag;
 String input;
 int steer, velocity, controlFlag;
 
+//SONARS
+SRF08 sonarFront;              
+SRF08 sonarRight;
+
+//INFRAREDS
+GP2D120 irFrontRight;
+GP2D120 irRearRight;
+GP2D120 irRearCenter;
+
+//WHEEL ENCODERS
+Odometer encoderRight(pulsesPerMeter);
+Odometer encoderLeft(pulsesPerMeter);
+
 void setup() {
   //SERIAL CONNECTION
-  Serial.begin(9600);
+  Serial.begin(115200);
 
   motor.attach(escPin);
   motor.writeMicroseconds(1500);  // set motor to neutral
   steering.attach(servoPin);
   steering.write(90);  // set servo to neutral
-  attachInterrupt(digitalPinToInterrupt(18), wheelDistance1, HIGH);
-  attachInterrupt(digitalPinToInterrupt(19), wheelDistance2, HIGH);
   attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING);
-  rcControllerFlag = 0;
+
+  rcControllerFlag = 0; // Set to 1 if an interupt comes from the RC controller
   controlFlag = 1;
-  distance1 = 0;
-  distance2 = 0;
+  //SONARS
+  sonarFront.attach(sonarFrontAddress);
+  sonarRight.attach(sonarRightAddress);
+
+  //INFRAREDS
+  irFrontRight.attach(irFrontRightPin);
+  irRearRight.attach(irRearRightPin);
+  irRearCenter.attach(irRearCenterPin);
+
+  //WHEEL ENCODERS
+  encoderRight.attach(encoderRightPin);
+  encoderRight.attach(encoderLeftPin);
 }
 
 void loop() {
   //rcControllerFlag = pulseIn(rcPinSteer, HIGH, 25000); // if the timeout is lower it sometimes time out before getting a value
   //Serial.print("Pulse read: ");
   //Serial.println(rcControllerFlag);
+  sendSensorData();
   if(rcControllerFlag == 1){
     //rcControl();
     //controlFlag = 0;
@@ -57,9 +106,6 @@ void loop() {
     manualControl();
     //handleInput();
   }
-  //Serial.println("Odometer counter: ");
-  //Serial.println(distance1);
-  //Serial.println(distance2);
 }
 
 void rcControl(){
@@ -84,6 +130,7 @@ void rcControl(){
     rcControllerFlag = 0;
     Serial.print("RC control set to off!");
   }
+  delay(100);
 }
 
 void manualControl(){
@@ -108,6 +155,44 @@ void manualControl(){
   }
 }
 
+int median(int vals[], int len) {
+  int minimum = vals[0];
+  int maximum = vals[0];
+  int sum = 0;
+  int median = 90;
+  for (int i = 0; i < len; i ++) {
+    if (vals[i] < minimum) {
+      minimum = vals[i];
+    } else if (vals[i] > maximum) {
+      maximum = vals[i];
+    }
+    sum += vals[i];
+  }
+  sum = sum - (minimum + maximum);
+  median = floor(sum / (len-2));
+  return median;
+}
+
+void rcControllerInterrupt(){
+  rcControllerFlag = 1;
+}
+
+void sendSensorData(){
+  USF = "USF ";
+  USF.concat(sonarFront.getDistance());
+  USR = " USR ";
+  USR.concat(sonarRight.getDistance());
+  IRFR = " IRFR ";
+  IRFR.concat(irFrontRight.getDistance());
+  IRRR = " IRRR ";
+  IRRR.concat(irRearRight.getDistance());
+  IRRC = " IRRC ";
+  IRRC.concat(irRearCenter.getDistance());
+  //String temp = "USF " + USF + " USR " + USR + " IRFR " + IRFR + " IRRR " + IRRR + " IRRC " + IRRC;
+  //String netstring = encodedNetstring(USF + USR + IRFR + IRRR + IRRC);
+  temp = USF + USR + IRFR + IRRR + IRRC;
+  Serial.println(temp);
+}
 void handleInput() { //handle serial input if there is any
   if (Serial.available()) {
     input = Serial.readStringUntil('\n');
@@ -147,33 +232,5 @@ void calibrateESC() {
         Serial.println("Neutral");
       }
   }
-}
-
-int median(int vals[], int len) {
-  int minimum = vals[0];
-  int maximum = vals[0];
-  int sum = 0;
-  int median = 90;
-  for (int i = 0; i < len; i ++) {
-    if (vals[i] < minimum) {
-      minimum = vals[i];
-    } else if (vals[i] > maximum) {
-      maximum = vals[i];
-    }
-    sum += vals[i];
-  }
-  sum = sum - (minimum + maximum);
-  median = floor(sum / (len-2));
-  return median;
-}
-
-void wheelDistance1(){
-  distance1++;
-}
-void wheelDistance2(){
-  distance2++;
-}
-void rcControllerInterrupt(){
-  rcControllerFlag = 1;
 }
 
