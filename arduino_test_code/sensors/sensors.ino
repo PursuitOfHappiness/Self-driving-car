@@ -27,7 +27,6 @@ const int encoderLeftPin = 8;
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
-Car porsche(useServo(servoPin), useESC(escPin)); //instantiation of the car
 
 //SONARS
 SRF08 sonarFront;              
@@ -44,9 +43,6 @@ Odometer encoderLeft(pulsesPerMeter);
 
 
 void setup() {
-  // put your setup code here, to run once:
-
-  porsche.begin();
   
   //SONARS
   sonarFront.attach(sonarFrontAddress);
@@ -70,11 +66,11 @@ void setup() {
 
 void loop() {
   // put your main code here, to run repeatedly:
-  printSonarFront();
-//  printSonarRight();
- // printIrFrontRight();
- // printIrRearRight();
- // printIrRearCenter();
+  //printSonarFront();
+  //printSonarRight();
+  //printIrFrontRight();
+  //printIrRearRight();
+  //printIrRearCenter();
   
 }
 

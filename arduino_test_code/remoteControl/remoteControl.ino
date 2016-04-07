@@ -2,8 +2,9 @@
 // Libraries //
 // --------- //
 #include <Servo.h> 
-#include <Smartcar.h> //Including Dimitri's library for sensors
-#include <Netstrings.h> //Include Dimitri's library for netstrings
+#include <Wire.h> // Sonars
+#include <SonarSRF08.h> // Sonars
+#include <Netstrings.h> // Include Dimitri's library for netstrings
 
 // --------- //
 // Constants //
@@ -17,8 +18,13 @@ const int servoPin = 5; //pin to which the servo motor is attached
 const int escPin = 6; //pin to which the ESC is attached
 
 //SONARS  -- I2C
-unsigned short sonarFrontAddress = 0x73; //pin to which the front sonar sensor is attached 
-unsigned short sonarRightAddress = 0x70; //pin to which the front right sonar sensor is attached
+#define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
+#define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
+#define GAIN_REGISTER 0x09 // Analog Gain
+#define LOCATION_REGISTER 0x8C // 1 meter
+
+char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
+
 
 //INFRAREDS  -- Analog
 const int irFrontRightPin = 0;     //pin to which the front right infrared sensor is attached 
@@ -30,13 +36,6 @@ const int pulsesPerMeter = 150;
 const int encoderRightPin = 18;
 const int encoderLeftPin = 19;
 
-String USF = "";
-String USR = "";
-String IRFR = "";
-String IRRR = "";
-String IRRC = "";
-String temp = "";
-
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
@@ -46,17 +45,8 @@ String input;
 int steer, velocity, controlFlag;
 
 //SONARS
-SRF08 sonarFront;              
-SRF08 sonarRight;
-
-//INFRAREDS
-GP2D120 irFrontRight;
-GP2D120 irRearRight;
-GP2D120 irRearCenter;
-
-//WHEEL ENCODERS
-Odometer encoderRight(pulsesPerMeter);
-Odometer encoderLeft(pulsesPerMeter);
+SonarSRF08 FrontCenterSonar;
+SonarSRF08 FrontRightSonar;
 
 void setup() {
   //SERIAL CONNECTION
@@ -68,36 +58,26 @@ void setup() {
   steering.write(90);  // set servo to neutral
   attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING);
 
-  rcControllerFlag = 0; // Set to 1 if an interupt comes from the RC controller
-  controlFlag = 1;
-  //SONARS
-  sonarFront.attach(sonarFrontAddress);
-  sonarRight.attach(sonarRightAddress);
+  rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
+  controlFlag = 1; // Set to 0 when the RC takes over, used to set steering and speed to neutral when RC controller is turned off
 
-  //INFRAREDS
-  irFrontRight.attach(irFrontRightPin);
-  irRearRight.attach(irRearRightPin);
-  irRearCenter.attach(irRearCenterPin);
-
-  //WHEEL ENCODERS
-  encoderRight.attach(encoderRightPin);
-  encoderRight.attach(encoderLeftPin);
+  FrontCenterSonar.connect(FC_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
+  FrontRightSonar.connect(FR_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
 }
 
 void loop() {
   //rcControllerFlag = pulseIn(rcPinSteer, HIGH, 25000); // if the timeout is lower it sometimes time out before getting a value
   //Serial.print("Pulse read: ");
   //Serial.println(rcControllerFlag);
-  sendSensorData();
+  String US = getUSData();
+  String IR = getIRData();
+  Serial.println(US + IR);
   if(rcControllerFlag == 1){
+    Serial.print("Interupted!");
     //rcControl();
     //controlFlag = 0;
     motor.writeMicroseconds(1500);
     steering.write(90);
-    if (pulseIn(rcPinSteer, LOW, 25000) == 0){
-      rcControllerFlag = 0;
-      Serial.print("RC control set to off!");
-    }
   }else if(controlFlag == 0){
     motor.writeMicroseconds(1500);
     steering.write(90);
@@ -111,26 +91,36 @@ void loop() {
 void rcControl(){
   Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000);
-  int i;
-  int steerVals[10] = {90};
-  for(i = 0; i < 10; i++){
-    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
-  }
-  steer = median(steerVals, 10) + 7;
-  velocity = map(velocity, 1000, 1500, 0, 150);
+  steer = pulseIn(rcPinSteer, HIGH, 25000);
+//  int i;
+//  int steerVals[10] = {90};
+//  for(i = 0; i < 10; i++){
+//    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
+//  }
+//  steer = median(steerVals, 10) + 7;
+  velocity = map(velocity, 1090, 2090, 0, 200);
   Serial.print("steer ");
   Serial.println(steer);
   Serial.print("velocity ");
   Serial.println(velocity);
-  steering.write(steer);
+  //steering.write(steer);
+  if (velocity > 95 && velocity < 115){
+    motor.writeMicroseconds(1500);
+    //Serial.println(1500);
+  } else if (velocity > 115){
+    motor.writeMicroseconds(1550 + (velocity - 100));
+    Serial.println(1550 + (velocity - 100));
+  } else if (velocity < 95){
+    motor.writeMicroseconds(1350 - (velocity + 100));
+    Serial.println(1200 - (velocity + 100));
+  }
   motor.writeMicroseconds(1650 - velocity);
-  int temp = pulseIn(rcPinSteer, LOW, 25000);
-  Serial.println(temp);
-  if (pulseIn(rcPinSteer, LOW, 25000) == 0){
+  //int temp = pulseIn(rcPinSteer, LOW, 25000);
+  //Serial.println(temp);
+  if (pulseIn(rcPinSteer, HIGH, 25000) == 0){
     rcControllerFlag = 0;
     Serial.print("RC control set to off!");
   }
-  delay(100);
 }
 
 void manualControl(){
@@ -177,22 +167,36 @@ void rcControllerInterrupt(){
   rcControllerFlag = 1;
 }
 
-void sendSensorData(){
-  USF = "USF ";
-  USF.concat(sonarFront.getDistance());
-  USR = " USR ";
-  USR.concat(sonarRight.getDistance());
-  IRFR = " IRFR ";
-  IRFR.concat(irFrontRight.getDistance());
-  IRRR = " IRRR ";
-  IRRR.concat(irRearRight.getDistance());
-  IRRC = " IRRC ";
-  IRRC.concat(irRearCenter.getDistance());
-  //String temp = "USF " + USF + " USR " + USR + " IRFR " + IRFR + " IRRR " + IRRR + " IRRC " + IRRC;
+String getUSData(){
+  String USF = " USF ";
+  USF.concat(FrontCenterSonar.getRange(unit));
+  String USR = " USR ";
+  USR.concat(FrontRightSonar.getRange(unit));
   //String netstring = encodedNetstring(USF + USR + IRFR + IRRR + IRRC);
-  temp = USF + USR + IRFR + IRRR + IRRC;
-  Serial.println(temp);
+  String temp = USF + USR;
+  return temp;
 }
+
+String getIRData(){
+  String IRFR = " IRFR ";
+  IRFR.concat(irCalc(irFrontRightPin));
+  String IRRR = " IRRR ";
+  IRRR.concat(irCalc(irRearRightPin));
+  String IRRC = " IRRC ";
+  IRRC.concat(irCalc(irRearCenterPin));
+  String temp = IRFR + IRRR + IRRC;
+  return temp;
+}
+
+int irCalc(int pin){
+  float volt = analogRead(pin);
+  int cm = ((2914 / (volt + 5 )) - 1);
+  if (cm >= 5 && cm <= 25){
+    return cm;
+  }
+  return -1;
+}
+
 void handleInput() { //handle serial input if there is any
   if (Serial.available()) {
     input = Serial.readStringUntil('\n');
