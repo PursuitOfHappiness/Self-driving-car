@@ -1,2 +1,0 @@
-/usr/bin/ar cr libViewLiveDatalib-static.a  CMakeFiles/ViewLiveDatalib-static.dir/src/ViewLiveData.cpp.o
-/usr/bin/ranlib libViewLiveDatalib-static.a
