@@ -1,0 +1,24 @@
+#IncludeRegexLine: ^[ 	]*#[ 	]*(include|import)[ 	]*[<"]([^">]+)([">])
+
+#IncludeRegexScan: ^.*$
+
+#IncludeRegexComplain: ^$
+
+#IncludeRegexTransform: 
+
+../include/ViewLiveData.h
+opendavinci/odcore/base/module/TimeTriggeredConferenceClientModule.h
+-
+
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/src/ViewLiveData.cpp
+iostream
+-
+opendavinci/odcore/io/conference/ContainerConference.h
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/src/opendavinci/odcore/io/conference/ContainerConference.h
+opendavinci/odcore/data/Container.h
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/src/opendavinci/odcore/data/Container.h
+automotivedata/GeneratedHeaders_AutomotiveData.h
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/src/automotivedata/GeneratedHeaders_AutomotiveData.h
+ViewLiveData.h
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/src/ViewLiveData.h
+

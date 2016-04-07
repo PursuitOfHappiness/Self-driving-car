@@ -1,0 +1,2 @@
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/build/CMakeFiles/ViewLiveData.dir
+/home/chap/OpenDaVINCI/automotive/miniature/ViewLiveData/build/CMakeFiles/ViewLiveDatalib-static.dir
