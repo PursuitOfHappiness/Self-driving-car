@@ -1,8 +1,8 @@
 // --------- //
 // Libraries //
 // --------- //
-#include <Servo.h> 
-#include <Wire.h> // Sonars
+#include <Servo.h>
+#include <Wire.h>       // Sonars
 #include <SonarSRF08.h> // Sonars
 #include <Netstrings.h> // Include Dimitri's library for netstrings
 
@@ -14,25 +14,25 @@ const int rcPinSteer = 3; // rc steering
 const int rcPinESC = 22;  // rc motor
 
 //MOTOR -- Digital
-const int servoPin = 5; //pin to which the servo motor is attached
-const int escPin = 6; //pin to which the ESC is attached
+const int servoPin = 5;   // pin to which the servo motor is attached
+const int escPin = 6;     // pin to which the ESC is attached
 
 //SONARS  -- I2C
 #define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
 #define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
-#define GAIN_REGISTER 0x09 // Analog Gain
-#define LOCATION_REGISTER 0x8C // 1 meter
+#define GAIN_REGISTER 0x09        // Analog Gain
+#define LOCATION_REGISTER 0x8C    // 1 meter
 
 char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
 
 
 //INFRAREDS  -- Analog
-const int irFrontRightPin = 0;     //pin to which the front right infrared sensor is attached 
-const int irRearRightPin = 1;      //pin to which the rear right infrared sensor is attached 
-const int irRearCenterPin  = 2;    //pin to which the rear infrared sensor is attached 
+const int irFrontRightPin = 0;     // pin to which the front right infrared sensor is attached
+const int irRearRightPin = 1;      // pin to which the rear right infrared sensor is attached
+const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is attached
 
 //WHEEL ENCODERS
-const int pulsesPerMeter = 150;
+const int pulsesPerMeter = 150; // TBD
 const int encoderRightPin = 18;
 const int encoderLeftPin = 19;
 
@@ -56,7 +56,7 @@ void setup() {
   motor.writeMicroseconds(1500);  // set motor to neutral
   steering.attach(servoPin);
   steering.write(90);  // set servo to neutral
-  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING);
+  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING); // interupts from rc controller
 
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   controlFlag = 1; // Set to 0 when the RC takes over, used to set steering and speed to neutral when RC controller is turned off
@@ -66,19 +66,16 @@ void setup() {
 }
 
 void loop() {
-  //rcControllerFlag = pulseIn(rcPinSteer, HIGH, 25000); // if the timeout is lower it sometimes time out before getting a value
-  //Serial.print("Pulse read: ");
-  //Serial.println(rcControllerFlag);
-  String US = getUSData();
-  String IR = getIRData();
-  Serial.println(US + IR);
-  if(rcControllerFlag == 1){
+  Serial.println(encodedNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
+  //Serial.println(US);
+  //String fromOdroid = decodedNetstring(Serial.readString()); // super slow
+  if(rcControllerFlag == 1){ // if an interupt is read from the RC-Controller
     Serial.print("Interupted!");
     //rcControl();
     //controlFlag = 0;
     motor.writeMicroseconds(1500);
     steering.write(90);
-  }else if(controlFlag == 0){
+  }else if(controlFlag == 0){ // this is true only after the RC-Controller is turned off
     motor.writeMicroseconds(1500);
     steering.write(90);
     controlFlag = 1;
@@ -87,17 +84,19 @@ void loop() {
     //handleInput();
   }
 }
-
+/*
+ * Function for manual control with an RC-Controller
+ */
 void rcControl(){
   Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000);
   steer = pulseIn(rcPinSteer, HIGH, 25000);
-//  int i;
-//  int steerVals[10] = {90};
-//  for(i = 0; i < 10; i++){
-//    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
-//  }
-//  steer = median(steerVals, 10) + 7;
+  //  int i;
+  //  int steerVals[10] = {90};
+  //  for(i = 0; i < 10; i++){
+  //    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
+  //  }
+  //  steer = median(steerVals, 10) + 7;
   velocity = map(velocity, 1090, 2090, 0, 200);
   Serial.print("steer ");
   Serial.println(steer);
@@ -122,11 +121,14 @@ void rcControl(){
     Serial.print("RC control set to off!");
   }
 }
-
+/*
+ * Reads values from the serial port. Reads the int values and sets the steering
+ * and motor to what it read. Use 't' for steering anv 'v' for motor
+ */
 void manualControl(){
   if (Serial.available()){
     input = Serial.readStringUntil('\n');
-    
+
     if (input.startsWith("t")){  // turning
       steer = input.substring(1).toInt();
       if (steer <= 180 && steer >=0){  // check that the value is in range
@@ -162,13 +164,18 @@ int median(int vals[], int len) {
   median = floor(sum / (len-2));
   return median;
 }
-
+/*
+ * Listens for the interupts from the RC-Controller
+ */
 void rcControllerInterrupt(){
   rcControllerFlag = 1;
 }
-
+/*
+ * Returns both US sensors value as a string.
+ * " USF 'value' USR 'value'"
+ */
 String getUSData(){
-  String USF = " USF ";
+  String USF = "USF ";
   USF.concat(FrontCenterSonar.getRange(unit));
   String USR = " USR ";
   USR.concat(FrontRightSonar.getRange(unit));
@@ -176,7 +183,10 @@ String getUSData(){
   String temp = USF + USR;
   return temp;
 }
-
+/*
+ * Returns all 3 IR sensors value as a string.
+ * " IRFR 'value' IRRR 'value' IRRC 'value'"
+ */
 String getIRData(){
   String IRFR = " IRFR ";
   IRFR.concat(irCalc(irFrontRightPin));
@@ -188,15 +198,22 @@ String getIRData(){
   return temp;
 }
 
+/*
+ * Calculates the distance an IR sensor is reporting. Returns the value as
+ * centimeters. Returns -1 if the value is outside 5-25.
+ * Takes an analog pin as input.
+ */
 int irCalc(int pin){
   float volt = analogRead(pin);
-  int cm = ((2914 / (volt + 5 )) - 1);
+  int cm = ((2914 / (volt + 5 )) - 1); // gives the range in centimeters
   if (cm >= 5 && cm <= 25){
     return cm;
   }
-  return -1;
+  return 0; // if the value is not in our range
 }
-
+/*
+ * Takes input over serial and sets steering and motor values to exact values
+ */
 void handleInput() { //handle serial input if there is any
   if (Serial.available()) {
     input = Serial.readStringUntil('\n');
@@ -221,7 +238,9 @@ void handleInput() { //handle serial input if there is any
     }
   }
 }
-
+/*
+ * Used for calibrating the motor
+ */
 void calibrateESC() {
   if (Serial.available()) {
     input = Serial.readStringUntil('\n');
@@ -237,4 +256,3 @@ void calibrateESC() {
       }
   }
 }
-
