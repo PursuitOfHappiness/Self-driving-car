@@ -34,8 +34,8 @@
 
 #include "Proxy.h"
 
-#include "opendavinci/odcore/wrapper/SerialPort.h"
-#include "opendavinci/odcore/wrapper/SerialPortFactory.h"
+#include <opendavinci/odcore/wrapper/SerialPort.h>
+#include <opendavinci/odcore/wrapper/SerialPortFactory.h>
 
 #include "opendavinci/odcore/io/conference/ContainerConference.h"
 #include "automotivedata/GeneratedHeaders_AutomotiveData.h"
@@ -47,6 +47,10 @@ namespace automotive {
         using namespace odcore::base;
         using namespace odcore::data;
         using namespace odtools::recorder;
+        using namespace odcore::io::protocol;
+        using namespace automotive;
+
+
 
         Proxy::Proxy(const int32_t &argc, char **argv) :
             TimeTriggeredConferenceClientModule(argc, argv, "proxy"),
@@ -59,89 +63,88 @@ namespace automotive {
         Proxy::~Proxy() {
         }
 
+        void Proxy::send(const string &s) {
+            // This gets encoded messages from doing nsp->send(STRING);
+            cout << "Proxy send executed with: " << s.length() << " bytes containing '" << s << "'" << endl;
+            m_serial->send(s);
+        }
+
+        void Proxy::nextString(const string &s) {
+            // This gets decoded messages fron NSP after successfully decoding a payload
+                
+                cout << "Proxy nextString executed with: " << s.length() << " bytes containing '" << s << "'" << endl;
+
+            // Parse the string
+
+                // Extract values from string. Make a linked list? Use map and iterator like they do in :)
+
+            // Use the values resulted from parsing to update sensorboarddata. Here is an example how you can change and update
+
+                //TO-DO: Use configuration file for IDs instead of having it hardcodeded
+                const int32_t ULTRASONIC_FRONT_CENTER = 3;
+                // const int32_t ULTRASONIC_FRONT_RIGHT = 4;
+                // const int32_t INFRARED_FRONT_RIGHT = 0;
+                // const int32_t INFRARED_REAR_RIGHT = 2;
+
+                Container containerSensorBoardData = getKeyValueDataStore().get(automotive::miniature::SensorBoardData::ID());
+                SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
+
+                double distance = sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_CENTER);
+
+                // We need to check for min and max values. If over max for example, use max instead. These should be stored the configuration file
+                sbd.putTo_MapOfDistances(ULTRASONIC_FRONT_CENTER, distance + 5 );
+
+                cout << "Here it is " << sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_CENTER) << endl;
+
+                Container c(sbd);
+                distribute(c);
+
+
+        }
+
         void Proxy::setUp() {
-            // This method will be call automatically _before_ running body().
+
+            m_nsp = new NetstringsProtocol();
+            m_nsp->setStringListener(this);
+            m_nsp->setStringSender(this);
+
+            //This method will be call automatically _before_ running body().
             if (getFrequency() < 20) {
                 cerr << endl << endl << "Proxy: WARNING! Running proxy with a LOW frequency (consequence: data updates are too seldom and will influence your algorithms in a negative manner!) --> suggestions: --freq=20 or higher! Current frequency: " << getFrequency() << " Hz." << endl << endl << endl;
             }
 
-            // Get configuration data.
-            KeyValueConfiguration kv = getKeyValueConfiguration();
+            
+            const string SERIAL_PORT = "/dev/pts/31";
+            const uint32_t BAUD_RATE = 19200;
+            
+            // We are using OpenDaVINCI's std::shared_ptr to automatically
+            // release any acquired resources.
+            try {
+                
+                m_serial = std::unique_ptr<odcore::wrapper::SerialPort>{odcore::wrapper::SerialPortFactory::createSerialPort(SERIAL_PORT, BAUD_RATE)};
+                
+                m_serial->setStringListener(m_nsp);
+                
+                m_serial->start();
+            }
+            catch(string &exception) {
+                cerr << "Error while creating serial port: " << exception << endl;
+            }
 
-            // Create built-in recorder.
-
-
-//             //const bool useRecorder = kv.getValue<uint32_t>("proxy.useRecorder") == 1;
-//             if (useRecorder) {
-//                 // URL for storing containers.
-//                 stringstream recordingURL;
-//                 recordingURL << "file://" << "proxy_" << TimeStamp().getYYYYMMDD_HHMMSS() << ".rec";
-//                 // Size of memory segments.
-//                 const uint32_t MEMORY_SEGMENT_SIZE = getKeyValueConfiguration().getValue<uint32_t>("global.buffer.memorySegmentSize");
-//                 // Number of memory segments.
-//                 const uint32_t NUMBER_OF_SEGMENTS = getKeyValueConfiguration().getValue<uint32_t>("global.buffer.numberOfMemorySegments");
-//                 // Run recorder in asynchronous mode to allow real-time recording in background.
-//                 const bool THREADING = true;
-//                 // Dump shared images and shared data?
-//                 const bool DUMP_SHARED_DATA = getKeyValueConfiguration().getValue<uint32_t>("proxy.recorder.dumpshareddata") == 1;
-
-//                 m_recorder = unique_ptr<Recorder>(new Recorder(recordingURL.str(), MEMORY_SEGMENT_SIZE, NUMBER_OF_SEGMENTS, THREADING, DUMP_SHARED_DATA));
-//             }
-
-//             // Create the camera grabber.
-//             const string NAME = getKeyValueConfiguration().getValue<string>("proxy.camera.name");
-//             string TYPE = getKeyValueConfiguration().getValue<string>("proxy.camera.type");
-//             std::transform(TYPE.begin(), TYPE.end(), TYPE.begin(), ::tolower);
-//             const uint32_t ID = getKeyValueConfiguration().getValue<uint32_t>("proxy.camera.id");
-//             const uint32_t WIDTH = getKeyValueConfiguration().getValue<uint32_t>("proxy.camera.width");
-//             const uint32_t HEIGHT = getKeyValueConfiguration().getValue<uint32_t>("proxy.camera.height");
-//             const uint32_t BPP = getKeyValueConfiguration().getValue<uint32_t>("proxy.camera.bpp");
-
-//             if (TYPE.compare("opencv") == 0) {
-//                 m_camera = unique_ptr<Camera>(new OpenCVCamera(NAME, ID, WIDTH, HEIGHT, BPP));
-//             }
-//             if (TYPE.compare("ueye") == 0) {
-// #ifdef HAVE_UEYE
-//                 m_camera = unique_ptr<Camera>(new uEyeCamera(NAME, ID, WIDTH, HEIGHT, BPP));
-// #endif
-//             }
-
-//             if (m_camera.get() == NULL) {
-//                 cerr << "No valid camera type defined." << endl;
-//             }
-
-            // Set up serial shit
-
-            const string SERIAL_PORT = "/dev/pts/29";
-     		const uint32_t BAUD_RATE = 19200;
-
- 		    try {
- 		    	cout << "Setting up serial on " << SERIAL_PORT << " :) " << endl;
-	        
-				m_serial = std::shared_ptr<odcore::wrapper::SerialPort>{odcore::wrapper::SerialPortFactory::createSerialPort(SERIAL_PORT, BAUD_RATE)};
-				m_serial->setStringListener(this);
-
-				m_nsp = new odcore::io::protocol::NetstringsProtocol();
-				m_nsp->setStringSender(this);
-		       	//m_nsp = std::shared_ptr<odcore::io::protocol::NetstringsProtocol>();
-
-		        //m_nplistener = new automotive::miniature::NetstringPayloadListener(); // Listens for decoded sensors so that it can update the system
-		        //m_nsp->setStringListener(m_nplistener);
-				m_nsp->setStringListener(this);
-		        //m_nsp->nextString("18:HelloWorldReceive,");
-
-		        m_serial->start();
-		        cout << "Serial has started " << " :) " << endl;
-		    }
-		    catch(string &exception) {
-		        cerr << "Error while creating serial port: " << exception << endl;
-		    }
 
 
         }
 
         void Proxy::tearDown() {
+            cout << "Step TearDown " << endl;
             // This method will be call automatically _after_ return from body().
+            // Stop receiving bytes and unregister our handler.
+             m_recorder = NULL;
+             m_camera = NULL;
+             m_serial->stop();
+             m_serial->setStringListener(NULL);
+             m_serial = NULL;
+             m_nsp = NULL;
         }
 
         void Proxy::distribute(Container c) {
@@ -164,19 +167,18 @@ namespace automotive {
                 if (m_camera.get() != NULL) {
                     odcore::data::image::SharedImage si = m_camera->capture();
 
+
                     Container c(si);
                     distribute(c);
                     captureCounter++;
                 }
 
-                // Send instructions to car!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
-                // Check if anything changed from "previous time" - aka - dont send data we dont need to send anymore
-                VehicleControl vc;
-                /*
-				vc.setSpeed(2);
-                vc.setSteeringWheelAngle(0);
-                */
+                Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
+                VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
 
+                //m_nsp->send(vc.toString());
+                //cout << vc.toString() << endl; we get:
+                //Speed: 0 Acceleration: 0 SteeringWheelAngle: 0 BrakeLights: 0 FlashingLightsLeft: 0 FlashingLightsRight: 0 
             }
 
             cout << "Proxy: Captured " << captureCounter << " frames." << endl;
@@ -184,75 +186,5 @@ namespace automotive {
             return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
         }
 
-        void Proxy::nextString(const string &s) {
-
-        	// Netstring protocol nextString() method not decoding or at least not calling back the listener need to debug.
-
-        	// Check if S is decoded message from car
-        		// YES : then update the system with new sensor information
-        		// NO : Means we are getting netstring encoded vehicle data, and we need to send it to nsp
-	      	cout << "Received from either serial or netstringsprotocol " << s.length() << " bytes containing '" << s << "'" << endl;
-	      	//m_nsp->nextString("18:HelloWorldReceive,");
-
-            // const int32_t ULTRASONIC_FRONT_CENTER = 3;
-            // const int32_t ULTRASONIC_FRONT_RIGHT = 4;
-            // const int32_t INFRARED_FRONT_RIGHT = 0;
-            const int32_t INFRARED_REAR_RIGHT = 2;
-
-	      	// GET SENSORBOARDDATA so we can update sensor readings
-	      	Container containerSensorBoardData = getKeyValueDataStore().get(automotive::miniature::SensorBoardData::ID());
-            SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
-
-            double distance = sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT); // Get it from serial instead of sbd.getVa.....
-            sbd.putTo_MapOfDistances(INFRARED_REAR_RIGHT, distance); // Save it to sbd
-
-            // Get most recent vehicle data so we can update distance traveled
-            Container containerVehicleData = getKeyValueDataStore().get(automotive::VehicleData::ID());
-            VehicleData vd = containerVehicleData.getData<VehicleData> ();
-            //double absPath = vd.getAbsTraveledPath(); // travelled distance Should we update it? Which component simulates it? Wouldn't it get overwritten
-
-            // Send SBD awayyyyyy	
-            Container sbd_c(sbd);
-            getConference().send(sbd_c);
-
-            Container vd_c(vd);
-			getConference().send(vd_c);
-
-		}
-
-		void Proxy::send(const string &s) {
-			cout << "Received encoded data to send to car with " << s.length() << " bytes containing '" << s << " ." << endl;
-    		m_serial->send(s);
-		}
-
     }
 } // automotive::miniature
-
-/**
-
-
-// Loop through point sensors.
-            map<string, PointSensor*, odcore::strings::StringComparator>::iterator sensorIterator = m_mapOfPointSensors.begin();
-            for (; sensorIterator != m_mapOfPointSensors.end(); sensorIterator++) {
-                PointSensor *sensor = sensorIterator->second;
-
-                // Update FOV.
-                Polygon FOV = sensor->updateFOV(es.getPosition(), es.getRotation());
-                m_FOVs[sensor->getName()] = FOV;
-
-                // Calculate distance.
-                m_distances[sensor->getName()] = sensor->getDistance(m_mapOfPolygons);
-                cerr << sensor->getName() << ": " << m_distances[sensor->getName()] << endl;
-
-                // Store data for sensorboard.
-                sensorBoardData.putTo_MapOfDistances(sensor->getID(), m_distances[sensor->getName()]);
-            }
-
-
-            What is FOV?
-
-
-
-
-
-*/

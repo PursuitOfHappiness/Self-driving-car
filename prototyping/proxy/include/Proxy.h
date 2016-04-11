@@ -27,19 +27,20 @@
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odtools/recorder/Recorder.h"
 
-#include "Camera.h"
+#include <opendavinci/odcore/io/StringListener.h>
+#include <opendavinci/odcore/io/StringSender.h>
 
-#include "opendavinci/odcore/wrapper/SerialPort.h"
-
-#include "opendavinci/odcore/io/StringListener.h"
+#include <opendavinci/odcore/wrapper/SerialPort.h>
 
 #include "opendavinci/odcore/io/protocol/NetstringsProtocol.h"
+
+#include "Camera.h"
 
 namespace automotive {
     namespace miniature {
 
         using namespace std;
-
+        using namespace odcore::wrapper;
         /**
          * This class wraps the software/hardware interface board.
          */
@@ -74,6 +75,7 @@ namespace automotive {
                 Proxy(const int32_t &argc, char **argv);
 
                 virtual ~Proxy();
+
                 virtual void nextString(const std::string &s);
                 virtual void send(const std::string &s);
 
@@ -89,7 +91,7 @@ namespace automotive {
             private:
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
                 unique_ptr<Camera> m_camera;
-                std::shared_ptr<odcore::wrapper::SerialPort> m_serial;
+                unique_ptr<SerialPort> m_serial;
                 odcore::io::protocol::NetstringsProtocol* m_nsp;
         };
 
