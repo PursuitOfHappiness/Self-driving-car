@@ -18,6 +18,7 @@ const int servoPin = 5;   // pin to which the servo motor is attached
 const int escPin = 6;     // pin to which the ESC is attached
 
 //SONARS  -- I2C
+//Change these to Constants instead as it's preferred on the arduino
 #define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
 #define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
 #define GAIN_REGISTER 0x09        // Analog Gain
@@ -61,6 +62,7 @@ void setup() {
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   controlFlag = 1; // Set to 0 when the RC takes over, used to set steering and speed to neutral when RC controller is turned off
 
+  // Setting up the sonars and limiting the range to 1 meter.
   FrontCenterSonar.connect(FC_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
   FrontRightSonar.connect(FR_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
 }
@@ -89,20 +91,23 @@ void loop() {
  */
 void rcControl(){
   Serial.println("RC Control took over!");
-  velocity = pulseIn(rcPinESC, HIGH, 25000);
+  velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
+  velocity = constrain(velocity, 1090, 2090); // we dont want any values aoutside this range
   steer = pulseIn(rcPinSteer, HIGH, 25000);
+  //steer = constrain(velocity, 1090, 2090); // check these values first
   //  int i;
   //  int steerVals[10] = {90};
   //  for(i = 0; i < 10; i++){
   //    steerVals[i] = map(pulseIn(rcPinSteer, HIGH, 25000), 1000, 2000, 0, 180);;
   //  }
   //  steer = median(steerVals, 10) + 7;
-  velocity = map(velocity, 1090, 2090, 0, 200);
+  velocity = map(velocity, 1090, 2090, -100, 100); // map values for easier use
   Serial.print("steer ");
   Serial.println(steer);
   Serial.print("velocity ");
   Serial.println(velocity);
   //steering.write(steer);
+  /*
   if (velocity > 95 && velocity < 115){
     motor.writeMicroseconds(1500);
     //Serial.println(1500);
@@ -113,7 +118,7 @@ void rcControl(){
     motor.writeMicroseconds(1350 - (velocity + 100));
     Serial.println(1200 - (velocity + 100));
   }
-  motor.writeMicroseconds(1650 - velocity);
+  */
   //int temp = pulseIn(rcPinSteer, LOW, 25000);
   //Serial.println(temp);
   if (pulseIn(rcPinSteer, HIGH, 25000) == 0){
@@ -210,6 +215,17 @@ int irCalc(int pin){
     return cm;
   }
   return 0; // if the value is not in our range
+}
+/*
+ * Takes an array of integers as input and a new integer value
+ * the new int value will be added and the oldest value of the
+ * array will be removed. Oldest value is at the top.
+ */
+void fifo(int[] array, int newValue){
+  for (int i = 0; i < 4; i++){
+    array[i] = array[i+1];
+  }
+  array[4] = newValue;
 }
 /*
  * Takes input over serial and sets steering and motor values to exact values
