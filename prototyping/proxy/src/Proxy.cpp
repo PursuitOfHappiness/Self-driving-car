@@ -37,6 +37,9 @@
 #include "opendavinci/odcore/wrapper/SerialPort.h"
 #include "opendavinci/odcore/wrapper/SerialPortFactory.h"
 
+#include "opendavinci/odcore/io/conference/ContainerConference.h"
+#include "automotivedata/GeneratedHeaders_AutomotiveData.h"
+
 namespace automotive {
     namespace miniature {
 
@@ -166,7 +169,14 @@ namespace automotive {
                     captureCounter++;
                 }
 
-                // Get sensor data from IR/US.
+                // Send instructions to car!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!
+                // Check if anything changed from "previous time" - aka - dont send data we dont need to send anymore
+                VehicleControl vc;
+                /*
+				vc.setSpeed(2);
+                vc.setSteeringWheelAngle(0);
+                */
+
             }
 
             cout << "Proxy: Captured " << captureCounter << " frames." << endl;
@@ -184,16 +194,65 @@ namespace automotive {
 	      	cout << "Received from either serial or netstringsprotocol " << s.length() << " bytes containing '" << s << "'" << endl;
 	      	//m_nsp->nextString("18:HelloWorldReceive,");
 
+            // const int32_t ULTRASONIC_FRONT_CENTER = 3;
+            // const int32_t ULTRASONIC_FRONT_RIGHT = 4;
+            // const int32_t INFRARED_FRONT_RIGHT = 0;
+            const int32_t INFRARED_REAR_RIGHT = 2;
 
-	      	// TO DO GET SENSOR THROUGH USB NORMAL STRING READINGS (no encoding) FROM CAR UPDATE IR US SENSORS
+	      	// GET SENSORBOARDDATA so we can update sensor readings
+	      	Container containerSensorBoardData = getKeyValueDataStore().get(automotive::miniature::SensorBoardData::ID());
+            SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
+
+            double distance = sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT); // Get it from serial instead of sbd.getVa.....
+            sbd.putTo_MapOfDistances(INFRARED_REAR_RIGHT, distance); // Save it to sbd
+
+            // Get most recent vehicle data so we can update distance traveled
+            Container containerVehicleData = getKeyValueDataStore().get(automotive::VehicleData::ID());
+            VehicleData vd = containerVehicleData.getData<VehicleData> ();
+            //double absPath = vd.getAbsTraveledPath(); // travelled distance Should we update it? Which component simulates it? Wouldn't it get overwritten
+
+            // Send SBD awayyyyyy	
+            Container sbd_c(sbd);
+            getConference().send(sbd_c);
+
+            Container vd_c(vd);
+			getConference().send(vd_c);
 
 		}
 
 		void Proxy::send(const string &s) {
 			cout << "Received encoded data to send to car with " << s.length() << " bytes containing '" << s << " ." << endl;
-    		//m_serial->send(s);
+    		m_serial->send(s);
 		}
 
     }
 } // automotive::miniature
 
+/**
+
+
+// Loop through point sensors.
+            map<string, PointSensor*, odcore::strings::StringComparator>::iterator sensorIterator = m_mapOfPointSensors.begin();
+            for (; sensorIterator != m_mapOfPointSensors.end(); sensorIterator++) {
+                PointSensor *sensor = sensorIterator->second;
+
+                // Update FOV.
+                Polygon FOV = sensor->updateFOV(es.getPosition(), es.getRotation());
+                m_FOVs[sensor->getName()] = FOV;
+
+                // Calculate distance.
+                m_distances[sensor->getName()] = sensor->getDistance(m_mapOfPolygons);
+                cerr << sensor->getName() << ": " << m_distances[sensor->getName()] << endl;
+
+                // Store data for sensorboard.
+                sensorBoardData.putTo_MapOfDistances(sensor->getID(), m_distances[sensor->getName()]);
+            }
+
+
+            What is FOV?
+
+
+
+
+
+*/
