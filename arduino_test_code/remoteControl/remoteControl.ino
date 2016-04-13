@@ -1,10 +1,10 @@
 // --------- //
 // Libraries //
 // --------- //
-#include <Servo.h>
+#include <Servo.h>      // Steering and motor
 #include <Wire.h>       // Sonars
 #include <SonarSRF08.h> // Sonars
-#include <Netstrings.h> // Include Dimitri's library for netstrings
+//#include <Netstrings.h> // Include Dimitri's library for netstrings
 
 // --------- //
 // Constants //
@@ -26,7 +26,6 @@ const int escPin = 6;     // pin to which the ESC is attached
 
 char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
 
-
 //INFRAREDS  -- Analog
 const int irFrontRightPin = 0;     // pin to which the front right infrared sensor is attached
 const int irRearRightPin = 1;      // pin to which the rear right infrared sensor is attached
@@ -43,14 +42,14 @@ const int encoderLeftPin = 19;
 Servo motor, steering;
 unsigned long rcControllerFlag;
 int steer, velocity, controlFlag;
-int velocityArray[5] = {0};
-int steerArray[5] = {0};
-int frCSArray[3] = {0};
-int frRSArray[3] = {0};
-int rFIRArray[3] = {0};
-int rRIRArray[3] = {0};
-int rCIRArray[3] = {0};
-
+const int fifoSize = 3;
+int velocityArray[fifoSize] = {0};
+int steerArray[fifoSize] = {0};
+int frCSArray[fifoSize] = {0};
+int frRSArray[fifoSize] = {0};
+int iRFRArray[fifoSize] = {0};
+int iRRRArray[fifoSize] = {0};
+int iRRCArray[fifoSize] = {0};
 
 //SONARS
 SonarSRF08 FrontCenterSonar;
@@ -75,9 +74,9 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(encodedNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
+  Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
   //Serial.println(US);
-  //String fromOdroid = decodedNetstring(Serial.readString()); // super slow
+  //String fromOdroid = decodedNetstring(Serial.readString()); // add if serial.available around this
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
     Serial.print("Interupted!");
     rcControl();
@@ -90,7 +89,6 @@ void loop() {
     controlFlag = 1;
   } else {
     manualControl();
-    //handleInput();
   }
 }
 /*
@@ -169,9 +167,8 @@ String getUSData() {
   USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit)));
   String USR = " USR ";
   USR.concat(fifo(frRSArray, FrontRightSonar.getRange(unit)));
-  //String netstring = encodedNetstring(USF + USR + IRFR + IRRR + IRRC);
-  String temp = USF + USR;
-  return temp;
+
+  return USF + USR;
 }
 /*
  * Returns all 3 IR sensors value as a string.
@@ -179,13 +176,13 @@ String getUSData() {
  */
 String getIRData() {
   String IRFR = " IRFR ";
-  IRFR.concat(fifo(rFIRArray, irCalc(irFrontRightPin)));
+  IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));
   String IRRR = " IRRR ";
-  IRRR.concat(fifo(rRIRArray, irCalc(irRearRightPin)));
+  IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin)));
   String IRRC = " IRRC ";
-  IRRC.concat(fifo(rCIRArray, irCalc(irRearCenterPin)));
-  String temp = IRFR + IRRR + IRRC;
-  return temp;
+  IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));
+
+  return IRFR + IRRR + IRRC;
 }
 
 /*
@@ -208,11 +205,24 @@ int irCalc(int pin) {
  */
 int fifo(int array[], int newValue) {
   int sum = 0;
-  for (int i = 0; i < 4; i++) {
+  for (int i = 0; i < fifoSize - 1; i++) {
     array[i] = array[i + 1];
     sum += array[i + 1];
   }
-  array[4] = newValue;
+  array[fifoSize - 1] = newValue;
   sum += newValue;
-  return sum / 5;
+  return sum / fifoSize;
+}
+
+/*
+ * Encoding netsrings. Takes a string and returns it as
+ * 5:hello
+ */
+String encodeNetstring(String toEncode){
+  String str = "";
+  if (toEncode.length() < 1){
+    return "Netstrings: Nothing to encode";
+  }
+  return String(toEncode.length()) + ":" + toEncode + ",";
+
 }
