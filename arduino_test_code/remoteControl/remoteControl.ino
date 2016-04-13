@@ -42,7 +42,6 @@ const int encoderLeftPin = 19;
 // ----------------------- //
 Servo motor, steering;
 unsigned long rcControllerFlag;
-String input;
 int steer, velocity, controlFlag;
 int velocityArray[5] = {0};
 int steerArray[5] = {0};
@@ -59,7 +58,7 @@ SonarSRF08 FrontRightSonar;
 
 void setup() {
   //SERIAL CONNECTION
-  Serial.begin(115200);
+  Serial.begin(57600);
 
   motor.attach(escPin);
   motor.writeMicroseconds(1500);  // set motor to neutral
@@ -95,8 +94,8 @@ void loop() {
   }
 }
 /*
-   Function for manual control with an RC-Controller
-*/
+ * Function for manual control with an RC-Controller
+ */
 void rcControl() {
   Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
@@ -130,11 +129,12 @@ void rcControl() {
   }
 }
 /*
-   Reads values from the serial port. Reads the int values and sets the steering
-   and motor to what it read. Use 't' for steering anv 'v' for motor
-*/
+ * Reads values from the serial port. Reads the int values and sets the steering
+ * and motor to what it read. Use 't' for steering anv 'v' for motor
+ */
 void manualControl() {
-  if (Serial.available()) {
+  String input;
+  if (Serial.available() > 0) {
     input = Serial.readStringUntil('\n');
 
     if (input.startsWith("t")) { // turning
@@ -154,34 +154,16 @@ void manualControl() {
     }
   }
 }
-
-int median(int vals[], int len) {
-  int minimum = vals[0];
-  int maximum = vals[0];
-  int sum = 0;
-  int median = 90;
-  for (int i = 0; i < len; i ++) {
-    if (vals[i] < minimum) {
-      minimum = vals[i];
-    } else if (vals[i] > maximum) {
-      maximum = vals[i];
-    }
-    sum += vals[i];
-  }
-  sum = sum - (minimum + maximum);
-  median = floor(sum / (len - 2));
-  return median;
-}
 /*
-   Listens for the interupts from the RC-Controller
-*/
+ * Listens for the interupts from the RC-Controller
+ */
 void rcControllerInterrupt() {
   rcControllerFlag = 1;
 }
 /*
-   Returns both US sensors value as a string.
-   " USF 'value' USR 'value'"
-*/
+ * Returns both US sensors value as a string.
+ * " USF 'value' USR 'value'"
+ */
 String getUSData() {
   String USF = "USF ";
   USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit)));
@@ -192,9 +174,9 @@ String getUSData() {
   return temp;
 }
 /*
-   Returns all 3 IR sensors value as a string.
-   " IRFR 'value' IRRR 'value' IRRC 'value'"
-*/
+ * Returns all 3 IR sensors value as a string.
+ * " IRFR 'value' IRRR 'value' IRRC 'value'"
+ */
 String getIRData() {
   String IRFR = " IRFR ";
   IRFR.concat(fifo(rFIRArray, irCalc(irFrontRightPin)));
@@ -207,10 +189,10 @@ String getIRData() {
 }
 
 /*
-   Calculates the distance an IR sensor is reporting. Returns the value as
-   centimeters. Returns -1 if the value is outside 5-25.
-   Takes an analog pin as input.
-*/
+ * Calculates the distance an IR sensor is reporting. Returns the value as
+ * centimeters. Returns 0 if the value is outside 5-25.
+ * Takes an analog pin as input.
+ */
 int irCalc(int pin) {
   float volt = analogRead(pin);
   int cm = ((2914 / (volt + 5 )) - 1); // gives the range in centimeters
@@ -220,10 +202,10 @@ int irCalc(int pin) {
   return 0; // if the value is not in our range
 }
 /*
-   Takes an array of integers as input and a new integer value
-   the new int value will be added and the oldest value of the
-   array will be removed. Oldest value is at the top.
-*/
+ * Takes an array of integers as input and a new integer value
+ * the new int value will be added and the oldest value of the
+ * array will be removed. Oldest value is at the top.
+ */
 int fifo(int array[], int newValue) {
   int sum = 0;
   for (int i = 0; i < 4; i++) {
@@ -233,49 +215,4 @@ int fifo(int array[], int newValue) {
   array[4] = newValue;
   sum += newValue;
   return sum / 5;
-}
-/*
-   Takes input over serial and sets steering and motor values to exact values
-*/
-void handleInput() { //handle serial input if there is any
-  if (Serial.available()) {
-    input = Serial.readStringUntil('\n');
-    if (input.startsWith("w")) {
-      motor.writeMicroseconds(1570);
-      Serial.println("Going forward");
-    } else if (input.startsWith("s")) {
-      motor.writeMicroseconds(1200);
-      Serial.println("Going Backward");
-    } else if (input.startsWith("q")) {
-      motor.writeMicroseconds(1500);
-      Serial.println("Neutral");
-    } else if (input.startsWith("a")) {
-      steering.write(60);
-      Serial.println("Turning Left");
-    } else if (input.startsWith("d")) {
-      steering.write(120);
-      Serial.println("Turning Right");
-    } else if (input.startsWith("x")) {
-      steering.write(90);
-      Serial.println("Straight Forward");
-    }
-  }
-}
-/*
-   Used for calibrating the motor
-*/
-void calibrateESC() {
-  if (Serial.available()) {
-    input = Serial.readStringUntil('\n');
-    if (input.startsWith("u")) {
-      motor.writeMicroseconds(2000);
-      Serial.println("Full forward");
-    } else if (input.startsWith("i")) {
-      motor.writeMicroseconds(1000);
-      Serial.println("Full back");
-    } else if (input.startsWith("n")) {
-      motor.writeMicroseconds(1500);
-      Serial.println("Neutral");
-    }
-  }
 }
