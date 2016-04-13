@@ -4,7 +4,6 @@
 #include <Servo.h>      // Steering and motor
 #include <Wire.h>       // Sonars
 #include <SonarSRF08.h> // Sonars
-//#include <Netstrings.h> // Include Dimitri's library for netstrings
 
 // --------- //
 // Constants //
@@ -76,7 +75,10 @@ void setup() {
 void loop() {
   Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
   //Serial.println(US);
-  //String fromOdroid = decodedNetstring(Serial.readString()); // add if serial.available around this
+  if (Serial.available() > 0){
+    String fromOdroid = decodeNetstring(Serial.readString());
+    Serial.println(fromOdroid);
+  }
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
     Serial.print("Interupted!");
     rcControl();
@@ -216,7 +218,7 @@ int fifo(int array[], int newValue) {
 
 /*
  * Encoding netsrings. Takes a string and returns it as
- * 5:hello
+ * '5:hello'
  */
 String encodeNetstring(String toEncode){
   String str = "";
@@ -224,5 +226,35 @@ String encodeNetstring(String toEncode){
     return "Netstrings: Nothing to encode";
   }
   return String(toEncode.length()) + ":" + toEncode + ",";
+}
+/*
+ * Decoding netsrings. Takes a string like this '5:hello'
+ * and returns it like this 'hello'
+ * Also checks that the netstring is of the correct format and size.
+ */
+String decodeNetstring(String toDecode){
+  if (toDecode.length() < 3){ // A netstring can't be shorter than 3 characters
+    return "Netstrings: Wrong format";
+  }
 
+  // Check that : and , exists at the proper places
+  int semicolonIndex = toDecode.indexOf(':');
+  int commaIndex = toDecode.lastIndexOf(',');
+  if (semicolonIndex < 1 || commaIndex != toDecode.length() - 1) { // the first character has to be a number
+    return "Netstrings: No semicolon found, or no comma found";
+  }
+
+  // Parse control number
+  String number = toDecode.substring(0, semicolonIndex);
+  int controlNumber = number.toInt();
+  if (controlNumber < 1){ // the netstring has to contain atleast 1 character to be parsed
+    return "Netstrings: Control Number is to low";
+  }
+
+  // Check that the length of the string is correct
+  toDecode = toDecode.substring(semicolonIndex + 1, commaIndex); // the data that we want to parse
+  if (controlNumber != toDecode.length()){
+    return "Netstrings: Wrong length of data";
+  }
+  return toDecode;
 }
