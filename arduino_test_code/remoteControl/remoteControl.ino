@@ -40,15 +40,15 @@ const int encoderLeftPin = 19;
 // ----------------------- //
 Servo motor, steering;
 unsigned long rcControllerFlag;
-int steer, velocity, controlFlag;
-const int fifoSize = 3;
-int velocityArray[fifoSize] = {0};
-int steerArray[fifoSize] = {0};
-int frCSArray[fifoSize] = {0};
-int frRSArray[fifoSize] = {0};
-int iRFRArray[fifoSize] = {0};
-int iRRRArray[fifoSize] = {0};
-int iRRCArray[fifoSize] = {0};
+int steer, velocity, controlFlag, wheelPulses;
+const int fifoSize = 3;             // Decides the size of the following arrays
+int velocityArray[fifoSize] = {0};  // Speed
+int steerArray[fifoSize] = {0};     // Steering
+int frCSArray[fifoSize] = {0};      // Front Center US
+int frRSArray[fifoSize] = {0};      // Front Right US
+int iRFRArray[fifoSize] = {0};      // Right Front IR
+int iRRRArray[fifoSize] = {0};      // Right Rear IR
+int iRRCArray[fifoSize] = {0};      // Rear Right Center IR
 
 //SONARS
 SonarSRF08 FrontCenterSonar;
@@ -66,6 +66,7 @@ void setup() {
 
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   controlFlag = 1; // Set to 0 when the RC takes over, used to set steering and speed to neutral when RC controller is turned off
+  wheelPulses = 0;
 
   // Setting up the sonars and limiting the range to 1 meter.
   FrontCenterSonar.connect(FC_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
@@ -99,27 +100,32 @@ void loop() {
 void rcControl() {
   Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
-  velocity = constrain(velocity, 1020, 1900); // we dont want any values aoutside this range
-  velocity = map(velocity, 1020, 1900, -100, 100); // map values for easier use
-  Serial.print("velocity ------- ");
-  Serial.println(velocity);
-  velocity = fifo(velocityArray, velocity);
+  velocity = constrain(velocity, 1100, 1900); // we dont want any values aoutside this range
+  velocity = map(velocity, 1100, 1900, -100, 100); // map values for easier use
+  //velocity = fifo(velocityArray, velocity);
   steer = pulseIn(rcPinSteer, HIGH, 25000);
-  steer = constrain(velocity, 1090, 1750); // check these values first
-  steer = map(steer, 1090, 1750, 0, 180); // map values for easier use
-  steer = fifo(steerArray, steer);
-  //Serial.print("steer ");
-  //Serial.println(steer);
+  steer = constrain(steer, 1090, 1750); // check these values first
+  steer = map(steer, 1090, 1750, 60, 130); // map values for easier use
+  //steer = fifo(steerArray, steer);
+  Serial.print("steer ");
+  Serial.println(steer);
   Serial.print("velocity ");
   Serial.println(velocity);
   //steering.write(steer);
-  if (velocity > -5 && velocity < 5) {
+  if (velocity >= -5 && velocity <= 40) {
     motor.writeMicroseconds(1500);
     //Serial.println(1500);
-  } else if (velocity > 5) {
-    motor.writeMicroseconds(1550 + velocity);
-  } else if (velocity < 95) {
+  } else if (velocity > 40) {
+    motor.writeMicroseconds(1575 + (velocity-25));
+  } else if (velocity < -5) {
     motor.writeMicroseconds(1200 + velocity);
+  }
+  if (steer >= 90 && steer <= 95) {
+    steering.write(90);
+  } else if (steer > 95 ){
+    steering.write(steer);
+  } else if (steer < 90){
+    steering.write(steer);
   }
   //int temp = pulseIn(rcPinSteer, LOW, 25000);
   //Serial.println(temp);
@@ -161,6 +167,12 @@ void rcControllerInterrupt() {
   rcControllerFlag = 1;
 }
 /*
+ * Listens for the interupts from the wheel
+ */
+void wheelPulse() {
+  wheelPulses += 1;
+}
+/*
  * Returns both US sensors value as a string.
  * " USF 'value' USR 'value'"
  */
@@ -186,7 +198,6 @@ String getIRData() {
 
   return IRFR + IRRR + IRRC;
 }
-
 /*
  * Calculates the distance an IR sensor is reporting. Returns the value as
  * centimeters. Returns 0 if the value is outside 5-25.
@@ -215,7 +226,6 @@ int fifo(int array[], int newValue) {
   sum += newValue;
   return sum / fifoSize;
 }
-
 /*
  * Encoding netsrings. Takes a string and returns it as
  * '5:hello'
