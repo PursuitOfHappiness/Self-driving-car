@@ -56,7 +56,7 @@ SonarSRF08 FrontRightSonar;
 
 void setup() {
   //SERIAL CONNECTION
-  Serial.begin(19200);
+  Serial.begin(57600);
 
   motor.attach(escPin);
   motor.writeMicroseconds(1500);  // set motor to neutral
@@ -74,15 +74,9 @@ void setup() {
 }
 
 void loop() {
-  //Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
-  //Serial.println(US);
-  if (Serial.available() > 0){
-    String fromOdroid = decodeNetstring(Serial.readString());
-    Serial.println(fromOdroid);
+  Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
 
-  }
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
-    Serial.print("Interupted!");
     rcControl();
     controlFlag = 0;
     //motor.writeMicroseconds(1500);
@@ -91,7 +85,27 @@ void loop() {
     motor.writeMicroseconds(1500);
     steering.write(90);
     controlFlag = 1;
-  } else {
+  } else if (Serial.available() >= 23){ // Read data from the serial buffer if there is 24 or more chars there.
+    Serial.println("entered serial read");
+    char array[23];
+    int index = 0;
+    for (int i = 0;i <= 23; i++){
+      char c = Serial.read();
+      array[index] = c;
+      index++;
+    }
+    array[index] = '\0';
+    String fromOdroid(array);
+    Serial.println(fromOdroid);
+    int data[2];
+    dataFromSerial(decodeNetstring(fromOdroid), data); // decode netstring
+    if (data[0] >= 1070 && data[0] <= 1650){
+      motor.writeMicroseconds(data[0]);
+    }
+    if (data[1] >= 0 && data[1] <= 70){
+      steering.write(60 + data[1]);
+    }
+  } else { // listen to manual input over serial otherwise
     manualControl();
   }
 }
@@ -100,7 +114,6 @@ void loop() {
  */
 void rcControl() {
   int steer, velocity;
-  Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
   velocity = constrain(velocity, 1100, 1900); // we dont want any values aoutside this range
   velocity = map(velocity, 1100, 1900, -100, 100); // map values for easier use
@@ -120,7 +133,7 @@ void rcControl() {
   } else if (velocity > 40) {
     motor.writeMicroseconds(1575 + (velocity-25));
   } else if (velocity < -5) {
-    motor.writeMicroseconds(1200 + velocity);
+    motor.writeMicroseconds(1230 + velocity);
   }
   if (steer >= 90 && steer <= 95) {
     steering.write(90);
@@ -275,4 +288,23 @@ String decodeNetstring(String toDecode){
     return "Netstrings: Wrong length of data";
   }
   return toDecode;
+}
+/*
+ * Decodes the string of data from Odroid. Takes a string and a pointer to an
+ * int array with 2 values. Returns -1 as values if the string is malformed.
+ * String must look like this: speed='int';angle='int';
+ */
+void dataFromSerial(String values, int *pdata){
+  int equalSignIndexOne = values.indexOf('=');
+  int equalSignIndexTwo = values.indexOf('=', equalSignIndexOne + 1);
+  int semicolonIndexOne = values.indexOf(';');
+  int semicolonIndexTwo = values.indexOf(';', semicolonIndexOne + 1);
+  if (values.substring(0, equalSignIndexOne) == "speed" &&
+        values.substring(semicolonIndexOne + 1, equalSignIndexTwo) == "angle"){
+    pdata[0] = values.substring(equalSignIndexOne + 1 , semicolonIndexOne).toInt();
+    pdata[1] = values.substring(equalSignIndexTwo + 1, semicolonIndexTwo).toInt();
+  } else {
+    pdata[0] = -1;
+    pdata[1] = -1;
+  }
 }
