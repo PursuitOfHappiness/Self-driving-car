@@ -56,7 +56,7 @@ SonarSRF08 FrontRightSonar;
 
 void setup() {
   //SERIAL CONNECTION
-  Serial.begin(57600);
+  Serial.begin(19200);
 
   motor.attach(escPin);
   motor.writeMicroseconds(1500);  // set motor to neutral
@@ -74,7 +74,7 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
+  //Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
   //Serial.println(US);
   if (Serial.available() > 0){
     String fromOdroid = decodeNetstring(Serial.readString());
@@ -178,9 +178,11 @@ void wheelPulse() {
  */
 String getUSData() {
   String USF = "USF ";
-  USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit)));
+  //USF.concat(frCSArray, FrontCenterSonar.getRange(unit));
+  USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit))); // smooth values
   String USR = " USR ";
-  USR.concat(fifo(frRSArray, FrontRightSonar.getRange(unit)));
+  //USR.concat(frRSArray, FrontRightSonar.getRange(unit));
+  USR.concat(fifo(frRSArray, FrontRightSonar.getRange(unit))); // smooth values
 
   return USF + USR;
 }
@@ -190,11 +192,14 @@ String getUSData() {
  */
 String getIRData() {
   String IRFR = " IRFR ";
-  IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));
+  //IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));
+  IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));  // smooth values
   String IRRR = " IRRR ";
-  IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin)));
+  //IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin)));
+  IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin))); // smooth values
   String IRRC = " IRRC ";
-  IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));
+  //IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));
+  IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));  // smooth values
 
   return IRFR + IRRR + IRRC;
 }
