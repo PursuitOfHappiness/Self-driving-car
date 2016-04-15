@@ -40,7 +40,7 @@ const int encoderLeftPin = 19;
 // ----------------------- //
 Servo motor, steering;
 unsigned long rcControllerFlag;
-int steer, velocity, controlFlag, wheelPulses;
+int controlFlag, wheelPulses;
 const int fifoSize = 3;             // Decides the size of the following arrays
 int velocityArray[fifoSize] = {0};  // Speed
 int steerArray[fifoSize] = {0};     // Steering
@@ -79,6 +79,7 @@ void loop() {
   if (Serial.available() > 0){
     String fromOdroid = decodeNetstring(Serial.readString());
     Serial.println(fromOdroid);
+
   }
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
     Serial.print("Interupted!");
@@ -98,6 +99,7 @@ void loop() {
  * Function for manual control with an RC-Controller
  */
 void rcControl() {
+  int steer, velocity;
   Serial.println("RC Control took over!");
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
   velocity = constrain(velocity, 1100, 1900); // we dont want any values aoutside this range
@@ -140,6 +142,7 @@ void rcControl() {
  */
 void manualControl() {
   String input;
+  int steer, velocity;
   if (Serial.available() > 0) {
     input = Serial.readStringUntil('\n');
 
