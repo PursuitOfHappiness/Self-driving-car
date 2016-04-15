@@ -138,8 +138,8 @@ namespace automotive {
                 // set variable constants (i think it's bad design, can we have functions with several arguments?)
                 m_in_min= -0.2;
                 m_in_max = 0.2;
-                m_out_min = 60;
-                m_out_max = 120;
+                m_out_min = 0;
+                m_out_max = 130;
 
                 int arduinoSteerValue = Proxy::arduino_map(vcAngle);
 
