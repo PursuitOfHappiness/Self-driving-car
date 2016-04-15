@@ -187,8 +187,10 @@ namespace automotive {
             m_eOld = e;
 	    const double y = e;
             double desiredSteering = 0;
+	    double speed = 10;
             if (fabs(e) > 1e-2) {
                 desiredSteering = y;
+		speed = 1; //slow down when in a curve
 
                 if (desiredSteering > 25.0) {
                     desiredSteering = 25.0;
@@ -196,12 +198,12 @@ namespace automotive {
                 if (desiredSteering < -25.0) {
                     desiredSteering = -25.0;
                 }
-            }
-            cerr << "PID: " << "e = " << e << ", eSum = " << m_eSum << ", desiredSteering = " << desiredSteering << ", y = " << y << endl;
+	    }
+            cerr << "PID: " << "e = " << e << ", eSum = " << m_eSum << ", desiredSteering = " << desiredSteering << ", y = " << y << ", speed = " << speed << endl;
 
 
             // Go forward.
-            m_vehicleControl.setSpeed(5);
+            m_vehicleControl.setSpeed(speed);
             m_vehicleControl.setSteeringWheelAngle(desiredSteering);
         }
 
