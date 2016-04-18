@@ -85,7 +85,7 @@ void loop() {
     motor.writeMicroseconds(1500);
     steering.write(90);
     controlFlag = 1;
-  } else if (Serial.available() >= 23){ // Read data from the serial buffer if there is 24 or more chars there.
+  } else if (Serial.available() >= 23){ // Read data from the serial buffer if there is 23 or more chars there.
     Serial.println("entered serial read");
     char array[23];
     int index = 0;
@@ -115,11 +115,11 @@ void loop() {
 void rcControl() {
   int steer, velocity;
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
-  velocity = constrain(velocity, 1100, 1900); // we dont want any values aoutside this range
+  velocity = constrain(velocity, 1100, 1900); // we dont want any values outside this range
   velocity = map(velocity, 1100, 1900, -100, 100); // map values for easier use
   //velocity = fifo(velocityArray, velocity);
   steer = pulseIn(rcPinSteer, HIGH, 25000);
-  steer = constrain(steer, 1090, 1750); // check these values first
+  steer = constrain(steer, 1090, 1750); // we dont want any values outside this range
   steer = map(steer, 1090, 1750, 60, 130); // map values for easier use
   //steer = fifo(steerArray, steer);
   Serial.print("steer ");
