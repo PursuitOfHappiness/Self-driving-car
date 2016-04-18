@@ -52,6 +52,8 @@ namespace automotive {
             m_previousTime(),
             m_eSum(0),
             m_eOld(0),
+	    midLane(0),
+	    firstMeasure(true),
             m_vehicleControl() {}
 
         LaneFollower::~LaneFollower() {}
@@ -106,8 +108,10 @@ namespace automotive {
         }
 
         void LaneFollower::processImage() {
-            static bool useRightLaneMarking = true;
             double e = 0;
+	    int prev_left_x = -1;
+	    int prev_right_x = -1;
+	    bool no_lines = false;
 
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
             const int32_t distance = 280;
@@ -118,11 +122,12 @@ namespace automotive {
                 CvScalar pixelLeft;
                 CvPoint left;
                 left.y = y;
-                left.x = -1;
+                left.x = prev_left_x;
                 for(int x = m_image->width/2; x > 0; x--) {
 		            pixelLeft = cvGet2D(m_image, y, x);
 		            if (pixelLeft.val[0] >= 200) {
                         left.x = x;
+			prev_left_x = x;
                         break;
                     }
                 }
@@ -131,43 +136,41 @@ namespace automotive {
                 CvScalar pixelRight;
                 CvPoint right;
                 right.y = y;
-                right.x = -1;
+                right.x = prev_right_x;
                 for(int x = m_image->width/2; x < m_image->width; x++) {
 		            pixelRight = cvGet2D(m_image, y, x);
 		            if (pixelRight.val[0] >= 200) {
                         right.x = x;
+			prev_right_x = x;
                         break;
                     }
                 }
+	        if (firstMeasure) {
+		    midLane = (left.x + right.x)/2.0;
+	            firstMeasure = false;
+		}
 
 
                 if (y == CONTROL_SCANLINE) {
                     // Calculate the deviation error.
                     if (right.x > 0) {
-                        if (!useRightLaneMarking) {
-                            m_eSum = 0;
-                            m_eOld = 0;
-                        }
+			cerr << "RIGHT" << endl;
 
                         e = ((right.x - m_image->width/2.0) - distance)/distance;
 
-                        //useRightLaneMarking = true;
                     }
                     else if (left.x > 0) {
-                        if (useRightLaneMarking) {
-                            m_eSum = 0;
-                            m_eOld = 0;
-                        }
+			cerr << "LEFT" << endl;
                         
                         e = (distance - (m_image->width/2.0 - left.x))/distance;
-
-                        //useRightLaneMarking = false;
                     }
                     else {
                         // If no measurements are available, reset PID controller.
-                        m_eSum = 0;
-                        m_eOld = 0;
+			e = 0;
+			no_lines = true;
+			cerr << "NONE" << endl;
                     }
+			
                 }
             }
 
@@ -177,34 +180,40 @@ namespace automotive {
             TimeStamp currentTime;
             //double timeStep = (currentTime.toMicroseconds() - m_previousTime.toMicroseconds()) / (1000.0 * 1000.0);
             m_previousTime = currentTime;
+	    if (!no_lines) {
+            	if (fabs(e) < 1e-2) {
+                	m_eSum = 0;
+            	}
+            	else {
+                	m_eSum += e;
+            	}
+            	m_eOld = e;
+	    	const double y = e;
+            	double desiredSteering = 0;
+	    	double speed = 2;
+            	if (fabs(e) > 1e-2) {
+                	desiredSteering = y;
+			speed = 1.5; //slow down when in a curve
 
-            if (fabs(e) < 1e-2) {
-                m_eSum = 0;
-            }
-            else {
-                m_eSum += e;
-            }
-            m_eOld = e;
-	    const double y = e;
-            double desiredSteering = 0;
-	    double speed = 10;
-            if (fabs(e) > 1e-2) {
-                desiredSteering = y;
-		speed = 1; //slow down when in a curve
-
-                if (desiredSteering > 25.0) {
-                    desiredSteering = 25.0;
-                }
-                if (desiredSteering < -25.0) {
-                    desiredSteering = -25.0;
-                }
+                	if (desiredSteering > 25.0) {
+                    		desiredSteering = 25.0;
+                	}
+                	if (desiredSteering < -25.0) {
+                    		desiredSteering = -25.0;
+                	}
+	    	}
+	        // Go forward.
+                m_vehicleControl.setSpeed(speed);
+                m_vehicleControl.setSteeringWheelAngle(desiredSteering);
+		cerr << "PID: " << "e = " << e << ", eSum = " << m_eSum << ", desiredSteering = " << desiredSteering << ", y = " << y << ", speed = " << speed << endl;
+	    } else {
+		
+		m_vehicleControl.setSpeed(0.5); //super slow down when there are no lines
 	    }
-            cerr << "PID: " << "e = " << e << ", eSum = " << m_eSum << ", desiredSteering = " << desiredSteering << ", y = " << y << ", speed = " << speed << endl;
+            
 
 
-            // Go forward.
-            m_vehicleControl.setSpeed(speed);
-            m_vehicleControl.setSteeringWheelAngle(desiredSteering);
+            
         }
 
         // This method will do the main data processing job.
