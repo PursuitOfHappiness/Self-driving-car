@@ -1,0 +1,19 @@
+#!/bin/sh
+cd
+cd /home/rachele/OpenDaVINCI/automotive/miniature/lanefollower/build
+cmake ..
+make
+cd /home/rachele/Downloads
+odsupercomponent --cid=111 --freq=10 & 
+sleep 2
+odsimvehicle --cid=111 --freq=10 &
+sleep 1
+odsimirus --cid=111 --freq=10 &
+sleep 1
+odcockpit --cid=111 --freq=10 &
+sleep 1
+odsimcamera --cid=111 --freq=10 &
+sleep 1
+cd /home/rachele/OpenDaVINCI/automotive/miniature/lanefollower/build
+./lanefollower --cid=111 --freq=10
+
