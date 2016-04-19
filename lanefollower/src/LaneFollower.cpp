@@ -174,65 +174,6 @@ namespace automotive {
         void LaneFollower::processImage() {
             double e = findDeviation();
             cerr << "DEVIATION RECEIVED = " << e << endl;
-            
-            // double e = 0;
-            // int prev_left_x = -1;
-            // int prev_right_x = -1;
-            // bool no_lines = false;
-
-            // const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
-            // const int32_t distance = 280;
-
-            // TimeStamp beforeImageProcessing;
-            // for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
-            //     // Search from middle to the left:
-            //     CvScalar pixelLeft;
-            //     CvPoint left;
-            //     left.y = y;
-            //     left.x = prev_left_x;
-            //     for(int x = m_image->width/2; x > 0; x--) {
-            //         pixelLeft = cvGet2D(m_image, y, x);
-            //         if (pixelLeft.val[0] >= 200) {
-            //             left.x = x;
-            //             prev_left_x = x;
-            //             break;
-            //         }
-            //     }
-
-            //     // Search from middle to the right:
-            //     CvScalar pixelRight;
-            //     CvPoint right;
-            //     right.y = y;
-            //     right.x = prev_right_x;
-            //     for(int x = m_image->width/2; x < m_image->width; x++) {
-            //         pixelRight = cvGet2D(m_image, y, x);
-            //         if (pixelRight.val[0] >= 200) {
-            //             right.x = x;
-            //             prev_right_x = x;
-            //             break;
-            //         }
-            //     }
-
-            //     if (y == CONTROL_SCANLINE) {
-            //         // Calculate the deviation error.
-            //         if (right.x > 0) {
-            //             cerr << "RIGHT" << endl;
-            //             e = ((right.x - m_image->width/2.0) - distance)/distance;
-
-            //         }
-            //         else if (left.x > 0) {
-            //             cerr << "LEFT" << endl;
-            //             e = (distance - (m_image->width/2.0 - left.x))/distance;
-            //         }
-            //         else {
-            //             // If no measurements are available, reset PID controller.
-            //             e = 0;
-            //             no_lines = true;
-            //             cerr << "NONE" << endl;
-            //         }
-            
-            //     }
-            // }
 
             //TimeStamp afterImageProcessing;
             //cerr << "Processing time: " << (afterImageProcessing.toMicroseconds() - beforeImageProcessing.toMicroseconds())/1000.0 << "ms." << endl;
@@ -265,17 +206,6 @@ namespace automotive {
         // This method will do the main data processing job.
         // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode LaneFollower::body() {
-            // Get configuration data.
-            KeyValueConfiguration kv = getKeyValueConfiguration();
-
-            // Initialize fonts.
-            const double hscale = 0.4;
-            const double vscale = 0.3;
-            const double shear = 0.2;
-            const int thickness = 1;
-            const int lineType = 6;
-
-            cvInitFont(&m_font, CV_FONT_HERSHEY_DUPLEX, hscale, vscale, shear, thickness, lineType);
 
             // Overall state machine handler.
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
