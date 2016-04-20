@@ -136,8 +136,10 @@ namespace automotive {
         // This method will do the main data processing job.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Proxy::body() {
             uint32_t captureCounter = 0;
-            string port = "/dev/ttyACM2";
-            unsigned long baud = 19200;
+            uint32_t sendCounter = 0;
+            bool newCommand = false;
+            string port = "/dev/ttyACM0";
+            unsigned long baud = 57600;
 
             serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
 
@@ -158,11 +160,36 @@ namespace automotive {
                     distribute(c);
                     captureCounter++;
                 }
-                string result = my_serial.readline(50, "\n");
-                string decoded = decodeNetstring(result);
+                string toSend;
+                string result;
+                string decoded;
+                size_t size;
+                sendCounter++;
+                if(my_serial.isOpen() && sendCounter == 5){
+                   toSend = "20:speed=1500;angle=30;,";
+                   size = my_serial.write(toSend);
+                   cout << "size: " << size << " was sent" << endl;
+                }
+                if(my_serial.isOpen() && sendCounter == 10){
+                   toSend = "20:speed=1500;angle=65;,";
+                   size = my_serial.write(toSend);
+                   cout << "size: " << size << " was sent" << endl;
+                   sendCounter = 0;
+                }
+                size_t readSize = 1;
+                while (my_serial.available() > 0){
+                  string c = my_serial.read(readSize);
+                  result += c;
+                  if (c == ","){
+                    newCommand = true;
+                  }
 
-                //cout << "Received: " << result << endl;
-                cout << "Decoded: " << decoded << endl;
+                }
+                if (newCommand){
+                  decoded = decodeNetstring(result);
+                  cout << "Decoded: " << decoded << endl;
+                  newCommand = false;
+                }
 
             }
 
@@ -212,6 +239,13 @@ namespace automotive {
             return "Netstrings: Wrong length of data";
           }
           return toDecode;
+        }
+
+        string Proxy::encodeNetstring(string toEncode){
+          if (toEncode.length() < 1){
+            return "Netstrings: Nothing to encode";
+          }
+          return to_string(toEncode.length()) + ":" + toEncode + ",";
         }
     }
 } // automotive::miniature
