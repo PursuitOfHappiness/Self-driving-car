@@ -49,6 +49,8 @@ int frRSArray[fifoSize] = {0};      // Front Right US
 int iRFRArray[fifoSize] = {0};      // Right Front IR
 int iRRRArray[fifoSize] = {0};      // Right Rear IR
 int iRRCArray[fifoSize] = {0};      // Rear Right Center IR
+boolean newCommand = false;
+String inputBuffer = "";
 
 //SONARS
 SonarSRF08 FrontCenterSonar;
@@ -75,38 +77,37 @@ void setup() {
 
 void loop() {
   Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
-
+  //Serial.println("36:USF 90 USR 65 IRFR 10 IRRR 7 IRRC 15,");
+  // Create a buffer with all the data that comes over the serial connection
+  /*
+  while (Serial.available() > 0){
+    char c = Serial.read(); // Reads value and removes it from the serial buffer
+    inputBuffer += c;
+    if (c == ','){
+      newCommand = true;
+    }
+  }
+  */
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
-    rcControl();
+    //rcControl();
     controlFlag = 0;
-    //motor.writeMicroseconds(1500);
-    //steering.write(90);
+    motor.writeMicroseconds(1500);
+    steering.write(90);
   } else if (controlFlag == 0) { // this is true only after the RC-Controller is turned off
     motor.writeMicroseconds(1500);
     steering.write(90);
     controlFlag = 1;
-  } else if (Serial.available() >= 23){ // Read data from the serial buffer if there is 23 or more chars there.
-    Serial.println("entered serial read");
-    char array[23];
-    int index = 0;
-    for (int i = 0;i <= 23; i++){
-      char c = Serial.read();
-      array[index] = c;
-      index++;
-    }
-    array[index] = '\0';
-    String fromOdroid(array);
-    Serial.println(fromOdroid);
+  } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
-    dataFromSerial(decodeNetstring(fromOdroid), data); // decode netstring
+    dataFromSerial(decodeNetstring(inputBuffer), data); // decode netstring, and extract data
     if (data[0] >= 1070 && data[0] <= 1650){
       motor.writeMicroseconds(data[0]);
     }
     if (data[1] >= 0 && data[1] <= 70){
       steering.write(60 + data[1]);
     }
-  } else { // listen to manual input over serial otherwise
-    manualControl();
+    inputBuffer = "";
+    newCommand = false;
   }
 }
 /*
@@ -163,15 +164,15 @@ void manualControl() {
       steer = input.substring(1).toInt();
       if (steer <= 180 && steer >= 0) { // check that the value is in range
         steering.write(steer);
-        Serial.println("Turning set to: ");
-        Serial.println(steer);
+        //Serial.println("Turning set to: ");
+        //Serial.println(steer);
       }
     } else if (input.startsWith("v")) { // velocity
       velocity = input.substring(1).toInt();
       if (velocity <= 2000 && velocity >= 1000) { // check that the value is in range
         motor.writeMicroseconds(velocity);
-        Serial.print("Velocity set to: ");
-        Serial.println(velocity);
+        //Serial.print("Velocity set to: ");
+        //Serial.println(velocity);
       }
     }
   }
@@ -287,12 +288,13 @@ String decodeNetstring(String toDecode){
   if (controlNumber != toDecode.length()){
     return "Netstrings: Wrong length of data";
   }
+  Serial.println(toDecode);
   return toDecode;
 }
 /*
  * Decodes the string of data from Odroid. Takes a string and a pointer to an
  * int array with 2 values. Returns -1 as values if the string is malformed.
- * String must look like this: speed='int';angle='int';
+ * String must look like this: 'length':speed='int';angle='int';
  */
 void dataFromSerial(String values, int *pdata){
   int equalSignIndexOne = values.indexOf('=');
