@@ -36,6 +36,7 @@
 #include <cstdio>
 #include <unistd.h> // Linux specific
 #include <string>
+#include <automotivedata/GeneratedHeaders_AutomotiveData.h>
 
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "opendavinci/odcore/data/Container.h"
@@ -140,8 +141,19 @@ namespace automotive {
             bool newCommand = false;
             string port = "/dev/ttyACM0";
             unsigned long baud = 57600;
+            stringstream strStream;
+            string toSend = "";
+            string result = "";
+            string decoded = "";
+            string DELIM_KEY_VALUE = "=";
+            string DELIM_PAIR = ";";
+            string SPEED_KEY = "speed";
+            string ANGLE_KEY = "angle";
 
             serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
+
+            Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
+            VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
 
             // Test if the serial port has been created correctly.
             cout << "Is the serial port open?";
@@ -160,20 +172,28 @@ namespace automotive {
                     distribute(c);
                     captureCounter++;
                 }
-                string toSend;
-                string result;
-                string decoded;
-                size_t size;
-                sendCounter++;
-                if(my_serial.isOpen() && sendCounter == 5){
-                   toSend = "20:speed=1500;angle=30;,";
-                   size = my_serial.write(toSend);
-                   cout << "size: " << size << " was sent" << endl;
+
+                double vcSpeed = vc.getSpeed();
+                if (vcSpeed > 0){
+                  vcSpeed += 1570;
+                } else if (vcSpeed < 0){
+                  vcSpeed += 1100;
+                } else {
+                  vcSpeed = 1500;
                 }
-                if(my_serial.isOpen() && sendCounter == 10){
-                   toSend = "20:speed=1500;angle=65;,";
-                   size = my_serial.write(toSend);
-                   cout << "size: " << size << " was sent" << endl;
+                double vcAngle = vc.getSteeringWheelAngle();
+                int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
+                vcAngle = 90 + vcDegree;
+
+                sendCounter++;
+                if(my_serial.isOpen() && sendCounter == 15){
+                   strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
+                   << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
+                   strStream >> toSend;
+                   string encoded = encodeNetstring(toSend);
+                   //string temp = "20:speed=1500;angle=65;,";
+                   my_serial.write(encoded);
+                   cout << "sent: " << encoded << endl;
                    sendCounter = 0;
                 }
                 size_t readSize = 1;
@@ -189,6 +209,7 @@ namespace automotive {
                   decoded = decodeNetstring(result);
                   cout << "Decoded: " << decoded << endl;
                   newCommand = false;
+                  result = "";
                 }
 
             }
@@ -247,5 +268,6 @@ namespace automotive {
           }
           return to_string(toEncode.length()) + ":" + toEncode + ",";
         }
+
     }
 } // automotive::miniature
