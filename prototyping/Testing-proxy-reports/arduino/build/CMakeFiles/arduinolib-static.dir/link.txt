@@ -1,0 +1,2 @@
+/usr/bin/ar cr libarduinolib-static.a  CMakeFiles/arduinolib-static.dir/src/Arduino.cpp.o CMakeFiles/arduinolib-static.dir/src/CustomNetstringsProtocol.cpp.o CMakeFiles/arduinolib-static.dir/src/Camera.cpp.o CMakeFiles/arduinolib-static.dir/src/OpenCVCamera.cpp.o CMakeFiles/arduinolib-static.dir/src/uEyeCamera.cpp.o
+/usr/bin/ranlib libarduinolib-static.a
