@@ -141,8 +141,6 @@ namespace automotive {
             bool newCommand = false;
             string port = "/dev/ttyACM0";
             unsigned long baud = 57600;
-            stringstream strStream;
-            string toSend = "";
             string result = "";
             string decoded = "";
             string DELIM_KEY_VALUE = "=";
@@ -152,8 +150,7 @@ namespace automotive {
 
             serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
 
-            Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
-            VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
+
 
             // Test if the serial port has been created correctly.
             cout << "Is the serial port open?";
@@ -173,23 +170,43 @@ namespace automotive {
                     captureCounter++;
                 }
 
-                double vcSpeed = vc.getSpeed();
-                if (vcSpeed > 0){
-                  vcSpeed += 1570;
-                } else if (vcSpeed < 0){
-                  vcSpeed += 1100;
-                } else {
-                  vcSpeed = 1500;
-                }
-                double vcAngle = vc.getSteeringWheelAngle();
-                int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
-                vcAngle = 90 + vcDegree;
+                Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
+                VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
+                //cerr << "Most recent steering data: '" << vc.toString() << "'" << endl;
 
+                double vcSpeed = vc.getSpeed();
+                //cout << "vcSpeed received: " << vcSpeed << endl;
+                int16_t speedTemp = vcSpeed;
+                speedTemp *= 20;
+                if (vcSpeed > 0){
+                  speedTemp += 1570;
+                } else if (vcSpeed < 0){
+                  speedTemp += 1100;
+                } else {
+                  speedTemp = 1500;
+                }
+                vcSpeed = speedTemp;
+                //cout << "vcSpeed received: " << vcSpeed << endl;
+                double vcAngle = vc.getSteeringWheelAngle();
+                //cout << "vcAngle received: " << vcAngle << endl;
+                int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
+                //cout << "vcDegree received: " << vcDegree << endl;
+                if (vcDegree > 25){
+                  vcAngle = 90 + 25;
+                } else if (vcDegree < -25){
+                  vcAngle = 90 - 25;
+                } else {
+                  vcAngle = 90 + vcDegree;
+                }
+                //cout << "vcAngle received: " << vcAngle << endl;
                 sendCounter++;
                 if(my_serial.isOpen() && sendCounter == 15){
+                   stringstream strStream;
+                   string toSend = "";
                    strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
                    << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
                    strStream >> toSend;
+                   //cout << "Before encoding: " << toSend << endl;
                    string encoded = encodeNetstring(toSend);
                    //string temp = "20:speed=1500;angle=65;,";
                    my_serial.write(encoded);
@@ -207,7 +224,7 @@ namespace automotive {
                 }
                 if (newCommand){
                   decoded = decodeNetstring(result);
-                  cout << "Decoded: " << decoded << endl;
+                  //cout << "Decoded: " << decoded << endl;
                   newCommand = false;
                   result = "";
                 }
