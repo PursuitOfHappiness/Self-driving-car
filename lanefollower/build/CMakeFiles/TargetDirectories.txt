@@ -1,0 +1,3 @@
+/home/rachele/OpenDaVINCI/automotive/miniature/lanefollower/build/CMakeFiles/LaneFollowerTestSuite.h-TestSuite.dir
+/home/rachele/OpenDaVINCI/automotive/miniature/lanefollower/build/CMakeFiles/lanefollower.dir
+/home/rachele/OpenDaVINCI/automotive/miniature/lanefollower/build/CMakeFiles/lanefollowerlib-static.dir

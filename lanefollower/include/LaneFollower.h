@@ -94,6 +94,7 @@ namespace automotive {
 				double midLane;
 				bool firstMeasure;
 				bool no_lines;
+				bool overtake;
 
                 automotive::VehicleControl m_vehicleControl;
 
