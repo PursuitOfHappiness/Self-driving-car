@@ -224,7 +224,7 @@ namespace automotive {
                 }
                 if (newCommand){
                   decoded = decodeNetstring(result);
-                  //cout << "Decoded: " << decoded << endl;
+                  sbdDistribute(decoded);
                   newCommand = false;
                   result = "";
                 }
@@ -234,6 +234,51 @@ namespace automotive {
             cout << "Proxy: Captured " << captureCounter << " frames." << endl;
 
             return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
+        }
+
+        void Proxy::sbdDistribute(const string decodedData){
+          SensorBoardData sdb;
+
+          int irFrontRight;
+          int irRearRight;
+          int irRearCenter;
+          int usFrontCenter;
+          int usFrontRight;
+
+          //IRFR 0 IRRR 0 IRRC 0 USF 19 USR 23
+          cout << decodedData << endl;
+          size_t index1 = decodedData.find("IRFR");
+          cout << index1 << endl;
+          size_t index2 = decodedData.find("IRRR");
+          cout << index2 << endl;
+          size_t index3 = decodedData.find("IRRC");
+          cout << index3 << endl;
+          size_t index4 = decodedData.find("USF");
+          cout << index4 << endl;
+          size_t index5 = decodedData.find("USR");
+          cout << index5 << endl;
+
+          cout << "do we reach here?" << endl;
+          try {
+            irFrontRight = stoi(decodedData.substr(index1 + 4));
+            irRearRight = stoi(decodedData.substr(index2 + 4));
+            irRearCenter = stoi(decodedData.substr(index3 + 4));
+            usFrontCenter = stoi(decodedData.substr(index4 + 3));
+            usFrontRight = stoi(decodedData.substr(index5 + 3));
+          }
+          catch (std::invalid_argument&){
+            cerr << "STOI: Invalid Arguments." << endl;
+          }
+          catch (std::out_of_range&){
+            cerr << "STOI: Out of range." << endl;
+          }
+
+
+          cout << "irFrontRight: " << irFrontRight << endl;
+          cout << "irRearRight: " << irRearRight << endl;
+          cout << "irRearCenter: " << irRearCenter << endl;
+          cout << "usFrontCenter: " << usFrontCenter << endl;
+          cout << "usFrontRight: " << usFrontRight << endl;
         }
 
         string Proxy::decodeNetstring(string toDecode){
