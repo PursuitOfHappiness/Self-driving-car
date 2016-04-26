@@ -80,6 +80,8 @@ namespace automotive {
 
                 string decodeNetstring(string);
 
+                string encodeNetstring(string);
+
             private:
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
                 unique_ptr<Camera> m_camera;

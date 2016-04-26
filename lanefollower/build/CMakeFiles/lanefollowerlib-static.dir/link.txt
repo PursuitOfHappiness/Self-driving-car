@@ -1,0 +1,2 @@
+/usr/bin/ar cr liblanefollowerlib-static.a  CMakeFiles/lanefollowerlib-static.dir/src/LaneFollower.cpp.o
+/usr/bin/ranlib liblanefollowerlib-static.a

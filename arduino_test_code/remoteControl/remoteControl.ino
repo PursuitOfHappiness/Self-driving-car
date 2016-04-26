@@ -20,7 +20,7 @@ const int escPin = 6;     // pin to which the ESC is attached
 //Change these to Constants instead as it's preferred on the arduino
 #define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
 #define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
-#define GAIN_REGISTER 0x09        // Analog Gain
+#define GAIN_REGISTER 0x07        // Analog Gain
 #define LOCATION_REGISTER 0x8C    // 1 meter
 
 char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
@@ -49,6 +49,8 @@ int frRSArray[fifoSize] = {0};      // Front Right US
 int iRFRArray[fifoSize] = {0};      // Right Front IR
 int iRRRArray[fifoSize] = {0};      // Right Rear IR
 int iRRCArray[fifoSize] = {0};      // Rear Right Center IR
+boolean newCommand = false;
+String inputBuffer = "";
 
 //SONARS
 SonarSRF08 FrontCenterSonar;
@@ -75,38 +77,32 @@ void setup() {
 
 void loop() {
   Serial.println(encodeNetstring(getUSData() + getIRData())); // encode as a netstring and send over serial
+  Serial.flush(); // wait for sending to be complete and clear outgoing buffer
 
+  // Create a buffer with all the data that comes over the serial connection
+  while (Serial.available() > 0){
+    char c = Serial.read(); // Reads a value and removes it from the serial buffer
+    inputBuffer += c;
+    if (c == ','){
+      newCommand = true;
+    }
+  }
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
-    rcControl();
+    //rcControl();
     controlFlag = 0;
-    //motor.writeMicroseconds(1500);
-    //steering.write(90);
+    motor.writeMicroseconds(1500);
+    steering.write(90);
   } else if (controlFlag == 0) { // this is true only after the RC-Controller is turned off
     motor.writeMicroseconds(1500);
     steering.write(90);
     controlFlag = 1;
-  } else if (Serial.available() >= 23){ // Read data from the serial buffer if there is 23 or more chars there.
-    Serial.println("entered serial read");
-    char array[23];
-    int index = 0;
-    for (int i = 0;i <= 23; i++){
-      char c = Serial.read();
-      array[index] = c;
-      index++;
-    }
-    array[index] = '\0';
-    String fromOdroid(array);
-    Serial.println(fromOdroid);
+  } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
-    dataFromSerial(decodeNetstring(fromOdroid), data); // decode netstring
-    if (data[0] >= 1070 && data[0] <= 1650){
-      motor.writeMicroseconds(data[0]);
-    }
-    if (data[1] >= 0 && data[1] <= 70){
-      steering.write(60 + data[1]);
-    }
-  } else { // listen to manual input over serial otherwise
-    manualControl();
+    dataFromSerial(decodeNetstring(inputBuffer), data); // decode netstring, and extract data
+    setSpeed(data[0]);
+    setSteering(data[1]);
+    inputBuffer = "";
+    newCommand = false;
   }
 }
 /*
@@ -117,19 +113,13 @@ void rcControl() {
   velocity = pulseIn(rcPinESC, HIGH, 25000); // get a value from the RC-Controller
   velocity = constrain(velocity, 1100, 1900); // we dont want any values outside this range
   velocity = map(velocity, 1100, 1900, -100, 100); // map values for easier use
-  //velocity = fifo(velocityArray, velocity);
+
   steer = pulseIn(rcPinSteer, HIGH, 25000);
   steer = constrain(steer, 1090, 1750); // we dont want any values outside this range
   steer = map(steer, 1090, 1750, 60, 130); // map values for easier use
-  //steer = fifo(steerArray, steer);
-  Serial.print("steer ");
-  Serial.println(steer);
-  Serial.print("velocity ");
-  Serial.println(velocity);
-  //steering.write(steer);
+
   if (velocity >= -5 && velocity <= 40) {
     motor.writeMicroseconds(1500);
-    //Serial.println(1500);
   } else if (velocity > 40) {
     motor.writeMicroseconds(1575 + (velocity-25));
   } else if (velocity < -5) {
@@ -142,11 +132,8 @@ void rcControl() {
   } else if (steer < 90){
     steering.write(steer);
   }
-  //int temp = pulseIn(rcPinSteer, LOW, 25000);
-  //Serial.println(temp);
   if (pulseIn(rcPinSteer, HIGH, 25000) == 0) {
     rcControllerFlag = 0;
-    Serial.print("RC control set to off!");
   }
 }
 /*
@@ -163,15 +150,15 @@ void manualControl() {
       steer = input.substring(1).toInt();
       if (steer <= 180 && steer >= 0) { // check that the value is in range
         steering.write(steer);
-        Serial.println("Turning set to: ");
-        Serial.println(steer);
+        //Serial.println("Turning set to: ");
+        //Serial.println(steer);
       }
     } else if (input.startsWith("v")) { // velocity
       velocity = input.substring(1).toInt();
       if (velocity <= 2000 && velocity >= 1000) { // check that the value is in range
         motor.writeMicroseconds(velocity);
-        Serial.print("Velocity set to: ");
-        Serial.println(velocity);
+        //Serial.print("Velocity set to: ");
+        //Serial.println(velocity);
       }
     }
   }
@@ -194,10 +181,10 @@ void wheelPulse() {
  */
 String getUSData() {
   String USF = "USF ";
-  //USF.concat(frCSArray, FrontCenterSonar.getRange(unit));
+  //USF.concat(FrontCenterSonar.getRange(unit));
   USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit))); // smooth values
   String USR = " USR ";
-  //USR.concat(frRSArray, FrontRightSonar.getRange(unit));
+  //USR.concat(FrontRightSonar.getRange(unit));
   USR.concat(fifo(frRSArray, FrontRightSonar.getRange(unit))); // smooth values
 
   return USF + USR;
@@ -208,13 +195,13 @@ String getUSData() {
  */
 String getIRData() {
   String IRFR = " IRFR ";
-  //IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));
+  //IRFR.concat(irCalc(irFrontRightPin));
   IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));  // smooth values
   String IRRR = " IRRR ";
-  //IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin)));
+  //IRRR.concat(irCalc(irRearRightPin));
   IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin))); // smooth values
   String IRRC = " IRRC ";
-  //IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));
+  //IRRC.concat(irCalc(irRearCenterPin));
   IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));  // smooth values
 
   return IRFR + IRRR + IRRC;
@@ -249,7 +236,7 @@ int fifo(int array[], int newValue) {
 }
 /*
  * Encoding netsrings. Takes a string and returns it as
- * '5:hello'
+ * '5:hello,'
  */
 String encodeNetstring(String toEncode){
   String str = "";
@@ -268,7 +255,7 @@ String decodeNetstring(String toDecode){
     return "Netstrings: Wrong format";
   }
 
-  // Check that : and , exists at the proper places
+  // Check that ':' and ',' exists at the proper places
   int semicolonIndex = toDecode.indexOf(':');
   int commaIndex = toDecode.lastIndexOf(',');
   if (semicolonIndex < 1 || commaIndex != toDecode.length() - 1) { // the first character has to be a number
@@ -292,7 +279,7 @@ String decodeNetstring(String toDecode){
 /*
  * Decodes the string of data from Odroid. Takes a string and a pointer to an
  * int array with 2 values. Returns -1 as values if the string is malformed.
- * String must look like this: speed='int';angle='int';
+ * String must look like this: 'length':speed='int';angle='int';
  */
 void dataFromSerial(String values, int *pdata){
   int equalSignIndexOne = values.indexOf('=');
@@ -306,5 +293,21 @@ void dataFromSerial(String values, int *pdata){
   } else {
     pdata[0] = -1;
     pdata[1] = -1;
+  }
+}
+/*
+ * Function for speed. Checks that the value is inside the allowed range.
+ */
+void setSpeed(int speed){
+  if (speed >= 1070 && speed <= 1620){
+    motor.writeMicroseconds(speed);
+  }
+}
+/*
+ * Function for steering. Checks that the value is inside the allowed range.
+ */
+void setSteering(int steer){
+  if (steer >= 60 && steer <= 130){
+    steering.write(steer);
   }
 }

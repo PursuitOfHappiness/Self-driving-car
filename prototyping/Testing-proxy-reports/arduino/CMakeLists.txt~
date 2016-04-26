@@ -1,4 +1,4 @@
-# proxy - proxy is an example application to demonstrate how to
+# proxy - proxy is an example application to demonstrate how to 
 #         abstract from embedded software realized on Arudino or
 #         STM32F4 Discovery Board with OpenDaVINCI
 # Copyright (C) 2012 - 2015  Christian Berger
@@ -19,7 +19,7 @@
 
 CMAKE_MINIMUM_REQUIRED (VERSION 2.8)
 
-PROJECT (proxy)
+PROJECT (arduino)
 
 ###########################################################################
 # Set the search path for .cmake files.
@@ -40,7 +40,7 @@ INCLUDE (CompileFlags)
 
 ###########################################################################
 # Find and configure CxxTest.
-SET (CXXTEST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../cxxtest")
+SET (CXXTEST_INCLUDE_DIR "${CMAKE_CURRENT_SOURCE_DIR}/../../../cxxtest") 
 INCLUDE (CheckCxxTestEnvironment)
 
 ###########################################################################
@@ -83,34 +83,21 @@ IF(UEYE_FOUND)
     # Set header files from uEye.
     INCLUDE_DIRECTORIES (${UEYE_INCLUDE_DIR})
 ENDIF()
-
-# Serial library sources
-set(serial_SRCS serial/src/serial.cc serial/include/serial/serial.h serial/include/serial/v8stdint.h)
-if(UNIX)
-    list(APPEND serial_SRCS serial/src/impl/unix.cc)
-else()
-    list(APPEND serial_SRCS serial/src/impl/win.cc)
-endif()
-
-## Add serial library
-add_library(serial ${serial_SRCS})
-
 # Set include directory.
 INCLUDE_DIRECTORIES(include)
-INCLUDE_DIRECTORIES(serial/include)
 
 ###########################################################################
 # Build this project.
 FILE(GLOB_RECURSE thisproject-sources "${CMAKE_CURRENT_SOURCE_DIR}/src/*.cpp")
 ADD_LIBRARY (${PROJECT_NAME}lib-static STATIC ${thisproject-sources})
 ADD_EXECUTABLE (${PROJECT_NAME} "${CMAKE_CURRENT_SOURCE_DIR}/apps/${PROJECT_NAME}.cpp")
-TARGET_LINK_LIBRARIES (${PROJECT_NAME} ${PROJECT_NAME}lib-static ${LIBRARIES} serial)
+TARGET_LINK_LIBRARIES (${PROJECT_NAME} ${PROJECT_NAME}lib-static ${LIBRARIES}) 
 
 ###########################################################################
 # Enable CxxTest for all available testsuites.
 IF(CXXTEST_FOUND)
     FILE(GLOB thisproject-testsuites "${CMAKE_CURRENT_SOURCE_DIR}/testsuites/*.h")
-
+    
     FOREACH(testsuite ${thisproject-testsuites})
         STRING(REPLACE "/" ";" testsuite-list ${testsuite})
 
@@ -143,3 +130,4 @@ ENDIF(CXXTEST_FOUND)
 INSTALL(TARGETS ${PROJECT_NAME} RUNTIME DESTINATION bin/miniature COMPONENT software)
 # This project does not have a manual page so far.
 #INSTALL(FILES man/${PROJECT_NAME}.1 DESTINATION man/man1 COMPONENT software)
+
