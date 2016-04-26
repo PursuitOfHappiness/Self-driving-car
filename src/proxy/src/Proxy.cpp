@@ -177,7 +177,7 @@ namespace automotive {
                 double vcSpeed = vc.getSpeed();
                 //cout << "vcSpeed received: " << vcSpeed << endl;
                 int16_t speedTemp = vcSpeed;
-                speedTemp *= 10
+                speedTemp *= 10;
                 if (vcSpeed > 0){
                   speedTemp += 1590;
                 } else if (vcSpeed < 0){
@@ -224,7 +224,7 @@ namespace automotive {
                 }
                 if (newCommand){
                   decoded = decodeNetstring(result);
-                  //sbdDistribute(decoded);
+                  sbdDistribute(decoded);
                   newCommand = false;
                   result = "";
                 }
