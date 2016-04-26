@@ -1,0 +1,2 @@
+/usr/bin/ar cr libparallelparkerlib-static.a  CMakeFiles/parallelparkerlib-static.dir/src/ParallelParker.cpp.o
+/usr/bin/ranlib libparallelparkerlib-static.a
