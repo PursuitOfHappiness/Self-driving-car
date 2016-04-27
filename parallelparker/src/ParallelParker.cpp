@@ -58,6 +58,7 @@ namespace automotive {
 		
 	    
             const double ULTRASONIC_FRONT_RIGHT = 0;
+            const double INFRARED_REAR = 0;
             double distanceOld = 0;
             double absPathStart = 0;
             double absPathEnd = 0;
@@ -78,6 +79,7 @@ namespace automotive {
                 VehicleControl vc;
 
                 // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
+
                 if (stageMoving == 0) {
                     // Make sure that car starts moving;
                     vc.setSpeed(1.8);
@@ -101,13 +103,13 @@ namespace automotive {
                     vc.setSteeringWheelAngle(25);
                     stageMoving++;
                 }
-                if ((stageMoving >= 85) && (stageMoving < 200)) {
+                if ((stageMoving >= 85) && (stageMoving < 180)) {
                     // Backwards, steering wheel to the left.
                     vc.setSpeed(-.375);
                     vc.setSteeringWheelAngle(-20);
                     stageMoving++;
                 } 
-                if((stageMoving >= 200) && (stageMoving < 270)) {
+                if((stageMoving >= 180) && (((sbd.getValueForKey_MapOfDistances(INFRARED_REAR) < 5)  || (sbd.getValueForKey_MapOfDistances(INFRARED_REAR) > 0))))    {
 
                     
                     vc.setSpeed(-1);
@@ -116,7 +118,7 @@ namespace automotive {
 
                     }
 
-                if (stageMoving >= 270)  {
+                if ((stageMoving >= 180) && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR) < 5))  {
                     // Stop.
                     vc.setSpeed(0);
                     vc.setSteeringWheelAngle(0);
