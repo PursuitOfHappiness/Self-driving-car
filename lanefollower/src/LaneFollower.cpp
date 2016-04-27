@@ -63,12 +63,20 @@ namespace automotive {
         LaneFollower::~LaneFollower() {}
 
         void LaneFollower::setUp() {
+            if (m_debug) {
+                // Create an OpenCV-window.
+                cvNamedWindow("WindowShowImage", CV_WINDOW_AUTOSIZE);
+                cvMoveWindow("WindowShowImage", 300, 100);
+            }
         }
 
         void LaneFollower::tearDown() {
             // This method will be call automatically _after_ return from body().
             if (m_image != NULL) {
                 cvReleaseImage(&m_image);
+            }
+            if (m_debug) {
+                cvDestroyWindow("WindowShowImage");
             }
         }
 
@@ -150,6 +158,25 @@ namespace automotive {
                     }
                 }
 
+                if (m_debug) {
+                    if (left.x > 0) {
+                        CvScalar green = CV_RGB(0, 255, 0);
+                        cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
+
+                        stringstream sstr;
+                        sstr << (m_image->width/2 - left.x);
+                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
+                    }
+                    if (right.x > 0) {
+                        CvScalar red = CV_RGB(255, 0, 0);
+                        cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
+
+                        stringstream sstr;
+                        sstr << (right.x - m_image->width/2);
+                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
+                    }
+                }
+
                 if (y == CONTROL_SCANLINE) {
                     // Calculate the deviation error.
                     if (right.x > 0) {
@@ -182,6 +209,13 @@ namespace automotive {
             //cerr << "Processing time: " << (afterImageProcessing.toMicroseconds() - beforeImageProcessing.toMicroseconds())/1000.0 << "ms." << endl;
             TimeStamp currentTime;
 
+            if (m_debug) {
+                if (m_image != NULL) {
+                    cvShowImage("WindowShowImage", m_image);
+                    cvWaitKey(10);
+                }
+            }
+
             m_previousTime = currentTime;
             if (!no_lines) {
                 const double y = e;
@@ -211,6 +245,8 @@ namespace automotive {
         // This method will do the main data processing job.
         // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode LaneFollower::body() {
+            KeyValueConfiguration kv = getKeyValueConfiguration();
+            m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
 
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
