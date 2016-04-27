@@ -28,5 +28,5 @@
 *.app
 
 # No hidden files or build folders
-~*
+*~
 build/
