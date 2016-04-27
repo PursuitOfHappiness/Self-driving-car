@@ -299,7 +299,7 @@ void dataFromSerial(String values, int *pdata){
  * Function for speed. Checks that the value is inside the allowed range.
  */
 void setSpeed(int speed){
-  if (speed >= 1070 && speed <= 1650){
+  if (speed >= 1070 && speed <= 1620){
     motor.writeMicroseconds(speed);
   }
 }
