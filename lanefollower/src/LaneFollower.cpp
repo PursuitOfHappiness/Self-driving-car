@@ -126,7 +126,7 @@ namespace automotive {
             no_lines = false;
 
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
-            const int32_t distance = 280;
+            int32_t distance = 50;
 
             TimeStamp beforeImageProcessing;
             for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
@@ -178,6 +178,10 @@ namespace automotive {
                 }
 
                 if (y == CONTROL_SCANLINE) {
+                	if (firstMeasure) {
+                		distance = right.x + left.x;
+                		firstMeasure = false;
+                	}
                     // Calculate the deviation error.
                     if (right.x > 0) {
                         cerr << "RIGHT" << endl;
@@ -253,7 +257,7 @@ namespace automotive {
             const int32_t INFRARED_FRONT_RIGHT = 0;
             const int32_t INFRARED_REAR_RIGHT = 2;
 
-            const double OVERTAKING_DISTANCE = 6;
+            const double OVERTAKING_DISTANCE = -10; //use 6
             const double HEADING_PARALLEL = 0.01;
 
             // const double SPEED_FAST = 1;
