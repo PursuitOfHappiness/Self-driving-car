@@ -151,8 +151,6 @@ namespace automotive {
 
             serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
 
-
-
             // Test if the serial port has been created correctly.
             cout << "Is the serial port open?";
             if(my_serial.isOpen()){
@@ -162,10 +160,11 @@ namespace automotive {
             }
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-                // Capture frame.
+                // Delay all communication for a short while to not overflow the arduino
                 if (delayCounter < 40){
                   delayCounter++;
                 } else {
+                  // Capture frame.
   		            if (m_camera.get() != NULL) {
   		                odcore::data::image::SharedImage si = m_camera->capture();
 
@@ -174,27 +173,25 @@ namespace automotive {
   		                captureCounter++;
   		            }
 
+                  // Create objects where we get speed and steering angle from
   		            Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
   		            VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
-  		            //cerr << "Most recent steering data: '" << vc.toString() << "'" << endl;
 
   		            double vcSpeed = vc.getSpeed();
-  		            //cout << "vcSpeed received: " << vcSpeed << endl;
   		            int16_t speedTemp = vcSpeed;
-  		            speedTemp *= 10;
+                  // Set the speed to constant values
   		            if (vcSpeed > 0){
-  		              speedTemp += 1590;
+  		              speedTemp += 1600;
   		            } else if (vcSpeed < 0){
-  		              speedTemp += 1080;
+  		              speedTemp += 1070;
   		            } else {
   		              speedTemp = 1500;
   		            }
   		            vcSpeed = speedTemp;
-  		            //cout << "vcSpeed received: " << vcSpeed << endl;
   		            double vcAngle = vc.getSteeringWheelAngle();
-  		            //cout << "vcAngle received: " << vcAngle << endl;
+                  // Convert steering angle from radiants to degrees
   		            int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
-  		            //cout << "vcDegree received: " << vcDegree << endl;
+                  // Send the exact value we want to set steering at
   		            if (vcDegree > 25){
   		              vcAngle = 90 + 25;
   		            } else if (vcDegree < -25){
@@ -202,35 +199,35 @@ namespace automotive {
   		            } else {
   		              vcAngle = 90 + vcDegree;
   		            }
-  		            //cout << "vcAngle received: " << vcAngle << endl;
-  		            sendCounter++;
+
+  		            sendCounter++;  // Dont send to arduino every loop
   		            if(my_serial.isOpen() && sendCounter == 5){
   		               stringstream strStream;
   		               string toSend = "";
   		               strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
   		               << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
   		               strStream >> toSend;
-  		               //cout << "Before encoding: " << toSend << endl;
   		               string encoded = encodeNetstring(toSend);
-  		               //string temp = "20:speed=1500;angle=65;,";
   		               my_serial.write(encoded);
   		               cout << "sent: " << encoded << endl;
   		               sendCounter = 0;
   		            }
+                  // Read to a buffer for incomiing data
   		            size_t readSize = 1;
   		            while (my_serial.available() > 0){
   		              string c = my_serial.read(readSize);
   		              result += c;
   		              if (c == ","){
-  		                newCommand = true;
+  		                newCommand = true; // When a full netstring has arrived
   		              }
 
   		            }
   		            if (newCommand){
   		              decoded = decodeNetstring(result);
-  		              sbdDistribute(decoded);
+  		              sbdDistribute(decoded); // Distribute SensorBoardData
+                    vdDistribute(decoded); // Distribute VehicleData
   		              newCommand = false;
-  		              result = "";
+  		              result = ""; // clear buffer
   		            }
 
 		            }
@@ -241,6 +238,32 @@ namespace automotive {
 		        return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
         }
 
+        // Distribute VehicleData. Takes a string as input.
+        void Proxy::vdDistribute(const string decodedData){
+          VehicleData vd;
+
+          double cmTrav;
+          size_t index1 = decodedData.find("WP");
+
+          try {
+            cmTrav = stoi(decodedData.substr(index1 + 2));
+          }
+          catch (std::invalid_argument&){
+            cerr << "STOI: Invalid Arguments." << endl;
+          }
+          catch (std::out_of_range&){
+            cerr << "STOI: Out of range." << endl;
+          }
+
+          vd.setAbsTraveledPath(cmTrav);
+
+          cout << "cmTrav: " << vd.getAbsTraveledPath() << endl;
+
+          Container c3(vd);
+          getConference().send(c3);
+        }
+
+        // Distribute SensorBoardData. Takes a string as input.
         void Proxy::sbdDistribute(const string decodedData){
           SensorBoardData sbd;
 
@@ -250,15 +273,12 @@ namespace automotive {
           int usFrontCenter;
           int usFrontRight;
 
-          //IRFR 0 IRRR 0 IRRC 0 USF 19 USR 23
-          //cout << decodedData << endl;
           size_t index1 = decodedData.find("IRFR");
           size_t index2 = decodedData.find("IRRR");
           size_t index3 = decodedData.find("IRRC");
           size_t index4 = decodedData.find("USF");
           size_t index5 = decodedData.find("USR");
 
-          //cout << "do we reach here?" << endl;
           try {
             irFrontRight = stoi(decodedData.substr(index1 + 4));
             irRearRight = stoi(decodedData.substr(index2 + 4));
@@ -285,8 +305,8 @@ namespace automotive {
           cout << "usFrontCenter: " << sbd.getValueForKey_MapOfDistances(3) << endl;
           cout << "usFrontRight: " << sbd.getValueForKey_MapOfDistances(4) << endl;
 
-          Container c2(sdb);
-          getConference().send(c);
+          Container c2(sbd);
+          getConference().send(c2);
         }
 
         string Proxy::decodeNetstring(string toDecode){
