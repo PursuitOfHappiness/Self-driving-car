@@ -34,8 +34,7 @@ const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is a
 // Instatiation of objects //
 // ----------------------- //
 Servo motor, steering;
-unsigned long rcControllerFlag;
-int controlFlag, wheelPulses;
+volatile int wheelPulses, rcControllerFlag;
 const int fifoSize = 3;             // Decides the size of the following arrays
 int frCSArray[fifoSize] = {0};      // Front Center US
 int frRSArray[fifoSize] = {0};      // Front Right US
@@ -57,7 +56,7 @@ void setup() {
   motor.writeMicroseconds(1500);  // set motor to neutral
   steering.attach(servoPin);
   steering.write(90);  // set servo to neutral
-  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterrupt, RISING); // interupts from rc controller
+  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterruptOn, RISING); // rc-controller turned on
   attachInterrupt(digitalPinToInterrupt(2), wheelPulse, RISING); // interupts from wheel encoder
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   wheelPulses = 0;
@@ -68,9 +67,8 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(encodeNetstring(getUSData() + getIRData() + " WP " + wheelPulses)); // encode as a netstring and send over serial
+  Serial.println(encodeNetstring(getUSData() + getIRData() + distTraveled())); // encode as a netstring and send over serial
   Serial.flush(); // wait for sending to be complete and clear outgoing buffer
-
   // Create a buffer with all the data that comes over the serial connection
   while (Serial.available() > 0){
     char c = Serial.read(); // Reads a value and removes it from the serial buffer
@@ -94,7 +92,7 @@ void loop() {
 /*
  * Listens for the interupts from the RC-Controller
  */
-void rcControllerInterrupt() {
+void rcControllerInterruptOn() {
   rcControllerFlag = 1;
 }
 /*
@@ -133,6 +131,15 @@ String getIRData() {
   IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));  // smooth values
 
   return IRFR + IRRR + IRRC;
+}
+/*
+ * Calculates the distance the car has traveled in CM's
+ */
+String distTraveled() {
+  String WP = " WP ";
+  WP.concat(wheelPulses * 5);
+
+  return WP;
 }
 /*
  * Calculates the distance an IR sensor is reporting. Returns the value as
