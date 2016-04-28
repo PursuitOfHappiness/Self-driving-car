@@ -267,6 +267,15 @@ namespace automotive {
             KeyValueConfiguration kv = getKeyValueConfiguration();
             m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
 
+            // Initialize fonts.
+            const double hscale = 0.4;
+            const double vscale = 0.3;
+            const double shear = 0.2;
+            const int thickness = 1;
+            const int lineType = 6;
+
+            cvInitFont(&m_font, CV_FONT_HERSHEY_DUPLEX, hscale, vscale, shear, thickness, lineType);
+
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
             const int32_t INFRARED_FRONT_RIGHT = 0;
