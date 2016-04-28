@@ -16,6 +16,7 @@
  */
 
 #include <cstdio>
+#include <math.h>
 #include <cmath>
 #include <iostream>
 
@@ -59,10 +60,12 @@ namespace automotive {
 	    
             const double ULTRASONIC_FRONT_RIGHT = 0;
             const double INFRARED_REAR = 0;
+	    const double INFRARED_FRONT_RIGHT =0;
             double distanceOld = 0;
+           
             double absPathStart = 0;
             double absPathEnd = 0;
-
+            double x = 0;
             int stageMoving = 0;
             int stageMeasuring = 0;
 
@@ -78,15 +81,19 @@ namespace automotive {
                 // Create vehicle control data. Obs! -> only for the simulator
                 VehicleControl vc;
 
+                
+
                 // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
 
                 if (stageMoving == 0) {
                     // Make sure that car starts moving;
                     vc.setSpeed(1.8);
+                    
                     vc.setSteeringWheelAngle(0);
                 }
                 if ((stageMoving > 0) && (stageMoving < 40)) {
                     // Decrease the speed to the speed, on which we will recieve enough info;
+                    cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
                     vc.setSpeed(.38);
                     vc.setSteeringWheelAngle(0);
                     stageMoving++;
@@ -100,13 +107,15 @@ namespace automotive {
                 if ((stageMoving >= 45) && (stageMoving < 85)) {
                     // Backwards, steering wheel to the right.
                     vc.setSpeed(-1.5);
-                    vc.setSteeringWheelAngle(25);
+                    x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
+                    cerr << "Sensor value is = " << x << endl;
+                    vc.setSteeringWheelAngle(x);
                     stageMoving++;
                 }
                 if ((stageMoving >= 85) && (stageMoving < 180)) {
                     // Backwards, steering wheel to the left.
                     vc.setSpeed(-.375);
-                    vc.setSteeringWheelAngle(-20);
+                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5));
                     stageMoving++;
                 } 
                 if((stageMoving >= 180) && (((sbd.getValueForKey_MapOfDistances(INFRARED_REAR) < 5)  || (sbd.getValueForKey_MapOfDistances(INFRARED_REAR) > 0))))    {
