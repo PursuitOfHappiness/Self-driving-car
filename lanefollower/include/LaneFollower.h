@@ -92,7 +92,9 @@ namespace automotive {
                 double m_eSum;
                 double m_eOld;
 				double midLane;
-				bool firstMeasure;
+				int calibration;
+				int distance;
+				int distanceOld;
 				bool no_lines;
 				bool overtake;
 
