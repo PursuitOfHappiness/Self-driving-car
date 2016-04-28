@@ -181,9 +181,9 @@ namespace automotive {
   		            int16_t speedTemp = vcSpeed;
                   // Set the speed to constant values
   		            if (vcSpeed > 0){
-  		              speedTemp += 1600;
+  		              speedTemp = 1615;
   		            } else if (vcSpeed < 0){
-  		              speedTemp += 1070;
+  		              speedTemp = 1070;
   		            } else {
   		              speedTemp = 1500;
   		            }
