@@ -53,10 +53,10 @@ namespace automotive {
             m_eSum(0),
             m_eOld(0),
             midLane(0),
-            calibration(10),
-            distance(0),
+            calibration(0),
+            distance(250),
             distanceOld(0),
-            
+
             no_lines(false),
             overtake(false),
 
@@ -128,7 +128,7 @@ namespace automotive {
             no_lines = false;
 
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
-            
+
 
             TimeStamp beforeImageProcessing;
             for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
@@ -186,7 +186,7 @@ namespace automotive {
                             distance = ((right.x + left.x)/2)*0.9; //multiply by 0.9 to stay slightly closer to the trusted line marking
                             distanceOld = distance;
                             cerr << "DISTANCE OLD = " << distanceOld << endl;
-                            
+
                             cerr << "DISTANCE = " << distance;
                         } else {
                             distanceOld = distance;
@@ -213,7 +213,7 @@ namespace automotive {
                             cerr << "NONE" << endl;
                         }
                     }
-            
+
                 }
             }
             cerr << "DEVIATION FOUND = " << e << endl;
@@ -259,7 +259,7 @@ namespace automotive {
             }
         }
 
-        
+
 
         // This method will do the main data processing job.
         // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
@@ -389,7 +389,7 @@ namespace automotive {
                         distanceToObstacleOld = 0;
                     }
                 }
-                
+
 
                 // Measuring state machine.
                 if (stageMeasuring == FIND_OBJECT_INIT) {
@@ -452,7 +452,7 @@ namespace automotive {
                         stageMeasuring = DISABLE;
                     }
                 }
-                
+
 
 
                 // Create container for finally sending the set values for the control algorithm.
