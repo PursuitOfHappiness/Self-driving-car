@@ -78,6 +78,10 @@ namespace automotive {
 
                 void distribute(odcore::data::Container c);
 
+                void vdDistribute(const string);
+
+                void sbdDistribute(const string);
+
                 string decodeNetstring(string);
 
                 string encodeNetstring(string);

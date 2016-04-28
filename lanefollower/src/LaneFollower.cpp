@@ -63,12 +63,20 @@ namespace automotive {
         LaneFollower::~LaneFollower() {}
 
         void LaneFollower::setUp() {
+            if (m_debug) {
+                // Create an OpenCV-window.
+                cvNamedWindow("WindowShowImage", CV_WINDOW_AUTOSIZE);
+                cvMoveWindow("WindowShowImage", 300, 100);
+            }
         }
 
         void LaneFollower::tearDown() {
             // This method will be call automatically _after_ return from body().
             if (m_image != NULL) {
                 cvReleaseImage(&m_image);
+            }
+            if (m_debug) {
+                cvDestroyWindow("WindowShowImage");
             }
         }
 
@@ -118,7 +126,7 @@ namespace automotive {
             no_lines = false;
 
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
-            const int32_t distance = 280;
+            int32_t distance = 50;
 
             TimeStamp beforeImageProcessing;
             for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
@@ -150,7 +158,30 @@ namespace automotive {
                     }
                 }
 
+                if (m_debug) {
+                    if (left.x > 0) {
+                        CvScalar green = CV_RGB(0, 255, 0);
+                        cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
+
+                        stringstream sstr;
+                        sstr << (m_image->width/2 - left.x);
+                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
+                    }
+                    if (right.x > 0) {
+                        CvScalar red = CV_RGB(255, 0, 0);
+                        cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
+
+                        stringstream sstr;
+                        sstr << (right.x - m_image->width/2);
+                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
+                    }
+                }
+
                 if (y == CONTROL_SCANLINE) {
+                	if (firstMeasure) {
+                		distance = right.x + left.x;
+                		firstMeasure = false;
+                	}
                     // Calculate the deviation error.
                     if (right.x > 0) {
                         cerr << "RIGHT" << endl;
@@ -182,6 +213,13 @@ namespace automotive {
             //cerr << "Processing time: " << (afterImageProcessing.toMicroseconds() - beforeImageProcessing.toMicroseconds())/1000.0 << "ms." << endl;
             TimeStamp currentTime;
 
+            if (m_debug) {
+                if (m_image != NULL) {
+                    cvShowImage("WindowShowImage", m_image);
+                    cvWaitKey(10);
+                }
+            }
+
             m_previousTime = currentTime;
             if (!no_lines) {
                 const double y = e;
@@ -211,16 +249,18 @@ namespace automotive {
         // This method will do the main data processing job.
         // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode LaneFollower::body() {
+            KeyValueConfiguration kv = getKeyValueConfiguration();
+            m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
 
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
             const int32_t INFRARED_FRONT_RIGHT = 0;
             const int32_t INFRARED_REAR_RIGHT = 2;
 
-            const double OVERTAKING_DISTANCE = 6;
+            const double OVERTAKING_DISTANCE = -10; //use 6
             const double HEADING_PARALLEL = 0.01;
 
-            const double SPEED_FAST = 1;
+            // const double SPEED_FAST = 1;
             const double SPEED_SLOW = 0.5;
 
             // Overall state machines for moving and measuring.
@@ -281,8 +321,9 @@ namespace automotive {
                 }
                 else if (stageMoving == TO_LEFT_LANE_RIGHT_TURN) {
                     // Move to the left lane: Turn right part until both IRs have the same distance to obstacle.
-                    m_vehicleControl.setSpeed(SPEED_SLOW);
-                    m_vehicleControl.setSteeringWheelAngle(10);
+                    // m_vehicleControl.setSpeed(SPEED_SLOW);
+                    // m_vehicleControl.setSteeringWheelAngle(10);
+                    processImage();
 
                     // State machine measuring: Both IRs need to have the same distance before leaving this moving state.
                     stageMeasuring = HAVE_BOTH_IR_SAME_DISTANCE;
@@ -291,8 +332,9 @@ namespace automotive {
                 }
                 else if (stageMoving == CONTINUE_ON_LEFT_LANE) {
                     // Move to the left lane: Passing stage.
-                    m_vehicleControl.setSpeed(SPEED_FAST);
-                    m_vehicleControl.setSteeringWheelAngle(0);
+                    // m_vehicleControl.setSpeed(SPEED_FAST);
+                    // m_vehicleControl.setSteeringWheelAngle(0);
+                    processImage();
 
                     // Find end of object.
                     stageMeasuring = END_OF_OBJECT;
@@ -313,7 +355,7 @@ namespace automotive {
                     m_vehicleControl.setSteeringWheelAngle(-10);
 
                     stageToRightLaneLeftTurn--;
-                    if (stageToRightLaneLeftTurn < 30) {
+                    if (stageToRightLaneLeftTurn ==0) {
                         // Start over.
                         stageMoving = FORWARD;
                         overtake = false;
@@ -367,7 +409,7 @@ namespace automotive {
                     const double IR_FR = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     const double IR_RR = sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT);
 
-                    if ((fabs(IR_FR - IR_RR) < HEADING_PARALLEL) && ((stageToRightLaneLeftTurn - stageToRightLaneRightTurn) > 0)) {
+                    if ((fabs(IR_FR - IR_RR) < HEADING_PARALLEL) && ((stageToRightLaneLeftTurn - stageToRightLaneRightTurn) > 20)) {
                     // if ((fabs(IR_FR - IR_RR) < HEADING_PARALLEL)) {
                         // Straight forward again.
                         stageMoving = CONTINUE_ON_LEFT_LANE;
@@ -378,7 +420,7 @@ namespace automotive {
                     distanceToObstacleOld = distanceToObstacle;
                     distanceToObstacle = sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT);
 
-                    if (distanceToObstacle < 0 && distanceToObstacle < 0) {
+                    if (distanceToObstacle < 0 && distanceToObstacleOld < 0) {
                         // Move to right lane again.
                         stageMoving = TO_RIGHT_LANE_RIGHT_TURN;
 
