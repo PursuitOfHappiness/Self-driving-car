@@ -53,7 +53,9 @@ namespace automotive {
             m_eSum(0),
             m_eOld(0),
             midLane(0),
-            firstMeasure(true),
+            calibration(10),
+            distance(0),
+            distanceOld(0),
             
             no_lines(false),
             overtake(false),
@@ -126,7 +128,7 @@ namespace automotive {
             no_lines = false;
 
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
-            int32_t distance = 50;
+            
 
             TimeStamp beforeImageProcessing;
             for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
@@ -178,25 +180,38 @@ namespace automotive {
                 }
 
                 if (y == CONTROL_SCANLINE) {
-                	if (firstMeasure) {
-                		distance = right.x + left.x;
-                		firstMeasure = false;
-                	}
-                    // Calculate the deviation error.
-                    if (right.x > 0) {
-                        cerr << "RIGHT" << endl;
-                        e = ((right.x - m_image->width/2.0) - distance)/distance;
-
-                    }
-                    else if (left.x > 0) {
-                        cerr << "LEFT" << endl;
-                        e = (distance - (m_image->width/2.0 - left.x))/distance;
-                    }
-                    else {
-                        // If no measurements are available, reset PID controller.
+                	if (calibration > 0) {
+                        if (distanceOld == 0) {
+                            cerr << "DISTANCE OLD = " << distanceOld << endl;
+                            distance = ((right.x + left.x)/2)*0.9; //multiply by 0.9 to stay slightly closer to the trusted line marking
+                            distanceOld = distance;
+                            cerr << "DISTANCE OLD = " << distanceOld << endl;
+                            
+                            cerr << "DISTANCE = " << distance;
+                        } else {
+                            distanceOld = distance;
+                            distance = (((right.x + left.x)/2)*0.9 + distanceOld)/2;
+                        }
+                        cerr << "CALIBRATION: " << "OLD DISTANCE: " << distanceOld << " NEW DISTANCE: " << distance << endl;
+                		calibration --;
                         e = 0;
-                        no_lines = true;
-                        cerr << "NONE" << endl;
+                	} else {
+                        // Calculate the deviation error.
+                        if (right.x > 0) {
+                            cerr << "RIGHT" << endl;
+                            e = ((right.x - m_image->width/2.0) - distance)/distance;
+
+                        }
+                        else if (left.x > 0) {
+                            cerr << "LEFT" << endl;
+                            e = (distance - (m_image->width/2.0 - left.x))/distance;
+                        }
+                        else {
+                            // If no measurements are available, reset PID controller.
+                            e = 0;
+                            no_lines = true;
+                            cerr << "NONE" << endl;
+                        }
                     }
             
                 }
@@ -252,12 +267,21 @@ namespace automotive {
             KeyValueConfiguration kv = getKeyValueConfiguration();
             m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
 
+            // Initialize fonts.
+            const double hscale = 0.4;
+            const double vscale = 0.3;
+            const double shear = 0.2;
+            const int thickness = 1;
+            const int lineType = 6;
+
+            cvInitFont(&m_font, CV_FONT_HERSHEY_DUPLEX, hscale, vscale, shear, thickness, lineType);
+
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
             const int32_t INFRARED_FRONT_RIGHT = 0;
             const int32_t INFRARED_REAR_RIGHT = 2;
 
-            const double OVERTAKING_DISTANCE = -10; //use 6
+            const double OVERTAKING_DISTANCE = 6; //use 6
             const double HEADING_PARALLEL = 0.01;
 
             // const double SPEED_FAST = 1;
