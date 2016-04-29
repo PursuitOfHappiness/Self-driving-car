@@ -3,7 +3,6 @@
 // --------- //
 #include <Servo.h>      // Steering and motor
 #include <Wire.h>       // Sonars
-#include <SonarSRF08.h> // Sonars
 
 // --------- //
 // Constants //
@@ -20,8 +19,8 @@ const int escPin = 6;     // pin to which the ESC is attached
 //Change these to Constants instead as it's preferred on the arduino
 #define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
 #define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
-#define GAIN_REGISTER 0x07        // Analog Gain
-#define LOCATION_REGISTER 0x8C    // 1 meter
+#define GAIN_REGISTER 0x05        // Analog Gain
+#define LOCATION_REGISTER 0x18    // 1 meter
 
 char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
 
@@ -44,10 +43,6 @@ int iRRCArray[fifoSize] = {0};      // Rear Right Center IR
 boolean newCommand = false;
 String inputBuffer = "";
 
-//SONARS
-SonarSRF08 FrontCenterSonar;
-SonarSRF08 FrontRightSonar;
-
 void setup() {
   //SERIAL CONNECTION
   Serial.begin(57600);
@@ -60,10 +55,20 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(2), wheelPulse, RISING); // interupts from wheel encoder
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   wheelPulses = 0;
-
+  Wire.begin();
   // Setting up the sonars and limiting the range to 1 meter.
-  FrontCenterSonar.connect(FC_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
-  FrontRightSonar.connect(FR_08_ADDRESS, GAIN_REGISTER, LOCATION_REGISTER);
+
+  Wire.beginTransmission(FC_08_ADDRESS);
+  Wire.write(0x00);
+  Wire.write(GAIN_REGISTER);
+  Wire.write(LOCATION_REGISTER);
+  Wire.endTransmission();
+
+  Wire.beginTransmission(FR_08_ADDRESS);
+  Wire.write(0x00);
+  Wire.write(GAIN_REGISTER);
+  Wire.write(LOCATION_REGISTER);
+  Wire.endTransmission();
 }
 
 void loop() {
@@ -111,10 +116,10 @@ void wheelPulse() {
 String getUSData() {
   String USF = "USF ";
   //USF.concat(FrontCenterSonar.getRange(unit));
-  USF.concat(fifo(frCSArray, FrontCenterSonar.getRange(unit))); // smooth values
+  USF.concat(fifo(frCSArray, usCalc(FC_08_ADDRESS))); // smooth values
   String USR = " USR ";
   //USR.concat(FrontRightSonar.getRange(unit));
-  USR.concat(fifo(frRSArray, FrontRightSonar.getRange(unit))); // smooth values
+  USR.concat(fifo(frRSArray, usCalc(FR_08_ADDRESS))); // smooth values
 
   return USF + USR;
 }
@@ -155,7 +160,49 @@ int irCalc(int pin) {
   if (cm >= 5 && cm <= 25) {
     return cm;
   }
-  return 0; // if the value is not in our range
+  return -1; // if the value is not in our range
+}
+/*
+ * Calculates the distance a US sensor is reporting. Returns the value as
+ * centimeters. Returns 0 if the value is outside 5-90.
+ * Takes an int corresponding to a US sensor as input.
+ */
+int usCalc(int sensorAddress) {
+  int range;
+  Wire.beginTransmission(sensorAddress);
+  Wire.write(0x00);                      // First adress, used for range
+  Wire.write(0x51);                      // Send 0x51 to start a ranging in cm
+  Wire.endTransmission();
+  rangingNotDone(sensorAddress);
+  //delay(100);
+
+  Wire.beginTransmission(sensorAddress);    // start communicating with SRFmodule
+  Wire.write(0x02);              // Call the register for start of ranging data
+  Wire.endTransmission();
+
+  Wire.requestFrom(sensorAddress, 2);           // Request 2 bytes from SRF module
+  while(Wire.available() < 2);                 // Wait for data to arrive
+  byte highByte = Wire.read();                 // Get high byte
+  byte lowByte = Wire.read();                  // Get low byte
+  range = (highByte << 8) + lowByte;           // Put them together
+
+  if (range >= 5 && range <= 90) {
+    return range;
+  }
+  return -1; // if the value is not in our range
+}
+int rangingNotDone(int sensorAddress){
+  int done = -1;
+  Wire.beginTransmission(sensorAddress);    // Begin communication with the SRF module
+  Wire.write(0x00);                // Sends the command bit, when this bit is read it returns the software revision
+  Wire.endTransmission();
+  while (done == -1){
+    Wire.requestFrom(sensorAddress, 1); // Request 1 byte
+    while (Wire.available() < 0); // While byte available
+    done = Wire.read(); // Get byte
+    delay(1);
+  }
+  return 1;
 }
 /*
  * Takes an array of integers as input and a new integer value
