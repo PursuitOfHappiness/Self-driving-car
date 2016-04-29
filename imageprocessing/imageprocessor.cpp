@@ -10,6 +10,123 @@
 using namespace cv;
 using namespace std;
 
+void Contrast(Mat &input, double alpha, double beta) {
+
+
+    Mat temp = Mat::zeros(input.size(), input.type());
+
+    for(int y = 0; y < input.rows; y++) {
+        for(int x = 0; x < input.cols; x++) {
+            for(int c = 0; c < 3; c++) {
+                temp.at<Vec3b>(y, x)[c] =
+                        saturate_cast<uchar>( alpha * (input.at<Vec3b>(y,x)[c]) + beta);
+            }
+        }
+    }
+    temp.copyTo(input);
+}
+
+void TH(Mat &input, uchar light) {
+
+    Mat temp;
+    input.copyTo(temp);
+
+    uchar val = 0;
+
+    for(int y = 0; y < input.rows; y++) {
+        for(int x = 0; x < input.rows; x++) {
+            uchar c;
+            c = (input.at<Vec3b>(y, x)[0] / 3) + (input.at<Vec3b>(y, x)[1] / 3) + (input.at<Vec3b>(y, x)[2] / 3);
+            if(c >= light) {
+                temp.at<Vec3b>(y, x)[0] = c;
+                temp.at<Vec3b>(y, x)[1] = c;
+                temp.at<Vec3b>(y, x)[2] = c;
+            }
+            else {
+                temp.at<Vec3b>(y, x)[0] = 0;
+                temp.at<Vec3b>(y, x)[1] = 0;
+                temp.at<Vec3b>(y, x)[2] = 0;
+            }
+        }
+    }
+    temp.copyTo(input);
+
+}
+
+void fixLight(Mat &input, Mat &output, uchar range) {
+
+
+    Mat temp;
+    input.copyTo(temp);
+    if(input.channels() == 3)
+        cvtColor(input, temp, CV_RGB2GRAY);
+    else if(input.channels() == 1) {
+        input.copyTo(temp);
+    } else {
+        return;
+    }
+
+/*
+    int w = input.cols / 10;
+
+    for(int i = 0; i < input.rows; i++) {
+
+        for(int a = 0; a < input.cols; a+=w) {
+            uchar c = 0;
+            for (int j = a; j < (a + w); j++) {
+
+                if(c < temp.at<uchar>(i, j)) {
+
+                    c = temp.at<uchar>(i, j);
+
+                }
+
+            }
+
+            for(int k = a; k < (a + w); k++) {
+
+
+                if((c - range) > temp.at<uchar>(i, k)) {
+
+                    temp.at<uchar>(i, k) = 0;
+
+                }
+
+
+            }
+        }
+
+    }
+*/
+    for(int i = 0; i < input.rows; i++) {
+
+            uchar c = 0;
+            for (int j = 0; j < input.cols; j++) {
+
+                if(c < temp.at<uchar>(i, j)) {
+
+                    c = temp.at<uchar>(i, j);
+
+                }
+
+            }
+            for(int k = 0; k < input.cols; k++) {
+
+
+                if ((c - range) > temp.at<uchar>(i, k)) {
+
+                    temp.at<uchar>(i, k) = 0;
+
+                }
+
+
+            }
+
+    }
+
+    temp.copyTo(output);
+
+}
 
 int main(int argc, const char** argv)
 {
@@ -243,6 +360,24 @@ int main(int argc, const char** argv)
 	
 	}
 	return 0;
+	
+	/*
+	if (cap.read(frame) == NULL) break;
+        resize(frame, frame, Size(640, 480));
+        frame.copyTo(proc);
+        frame.copyTo(proc2);
+        int key = waitKey(1);
+
+        Contrast(frame, 1.2, -150);
+
+        cvtColor(frame, frame, CV_RGB2GRAY);
+        threshold(frame, frame, 100, 255, THRESH_TOZERO);
+        if (key == 27) {
+            break;
+        }
+        imshow("Camera", frame);
+        imshow("BlackWhite", proc);
+        */
 
 }
 
