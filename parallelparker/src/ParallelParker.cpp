@@ -58,11 +58,11 @@ namespace automotive {
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode ParallelParker::body() {
 		
 	    
-            const double ULTRASONIC_FRONT_RIGHT = 0;
-            const double INFRARED_REAR = 0;
-	    const double INFRARED_FRONT_RIGHT =0;
+            const double INFRARED_FRONT_RIGHT = 0;
+            //const double INFRARED_REAR_RIGHT = 1;
+	    const double INFRARED_REAR_CENTER = 2;
             double distanceOld = 0;
-           
+           // double c = 0;
             double absPathStart = 0;
             double absPathEnd = 0;
             double x = 0;
@@ -85,15 +85,18 @@ namespace automotive {
 
                 // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
 
+              cerr << "Stage is = " << stageMoving << endl;
+
                 if (stageMoving == 0) {
                     // Make sure that car starts moving;
                     vc.setSpeed(1.8);
-                    
+                    //c = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                   // cerr << "Sensor value is = " << c  << endl;
                     vc.setSteeringWheelAngle(0);
                 }
                 if ((stageMoving > 0) && (stageMoving < 40)) {
                     // Decrease the speed to the speed, on which we will recieve enough info;
-                    cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
+                   // cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
                     vc.setSpeed(.38);
                     vc.setSteeringWheelAngle(0);
                     stageMoving++;
@@ -118,7 +121,7 @@ namespace automotive {
                     vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5));
                     stageMoving++;
                 } 
-                if((stageMoving >= 180) && (((sbd.getValueForKey_MapOfDistances(INFRARED_REAR) < 5)  || (sbd.getValueForKey_MapOfDistances(INFRARED_REAR) > 0))))    {
+                if((stageMoving >= 180) && (((sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 5)  || (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))))    {
 
                     
                     vc.setSpeed(-1);
@@ -127,7 +130,7 @@ namespace automotive {
 
                     }
 
-                if ((stageMoving >= 180) && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR) < 5))  {
+                if ((stageMoving >= 180) && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 10))  {
                     // Stop.
                     vc.setSpeed(0);
                     vc.setSteeringWheelAngle(0);
@@ -138,25 +141,26 @@ namespace automotive {
                     case 0:
                     {
                         // Initialize measurement.
-                        distanceOld = sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT);
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                         stageMeasuring++;
                     }
                         break;
                     case 1:
                     {
                         // Checking for sequence +, -.
-                        if ((distanceOld > 0) && (sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT) < 0)) {
+                        if ((distanceOld > 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 1 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 20)) {
                             // Found sequence +, -.
                             stageMeasuring = 2;
                             absPathStart = vd.getAbsTraveledPath();
                         }
-                        distanceOld = sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT);
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     }
                         break;
                     case 2:
                     {
                         // Checking for sequence -, +.
-                        if ((distanceOld < 0) && (sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT) > 0)) {
+                        if ((distanceOld < 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 20)) 
+                           {
                             // Found sequence -, +.
                             stageMeasuring = 1;
                             absPathEnd = vd.getAbsTraveledPath();
@@ -169,7 +173,7 @@ namespace automotive {
                                 stageMoving = 1;
                             }
                         }
-                        distanceOld = sbd.getValueForKey_MapOfDistances(ULTRASONIC_FRONT_RIGHT);
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     }
                         break;
                 }
