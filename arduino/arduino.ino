@@ -80,6 +80,9 @@ void loop() {
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
     motor.writeMicroseconds(1500);
     steering.write(90);
+    if (pulseIn(rcPinSteer, HIGH, 25000) == 0) { // if RC-Controller is turned off
+      rcControllerFlag = 0;
+    }
   } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
     dataFromSerial(decodeNetstring(inputBuffer), data); // decode netstring, and extract data
