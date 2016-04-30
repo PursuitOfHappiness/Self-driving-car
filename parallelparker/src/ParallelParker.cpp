@@ -55,8 +55,10 @@ namespace automotive {
         }
 
         double ParallelParker::check () {
+			
+			int stageMeasuring = 0;
 
-            double stageMoving,stageMeasuring,absPathStart,absPathEnd,distanceOld = 0;
+            double stageMoving,absPathStart,absPathEnd,distanceOld = 0;
 
             const double INFRARED_FRONT_RIGHT = 0;
           //  const double INFRARED_REAR_RIGHT = 1;
@@ -75,8 +77,12 @@ namespace automotive {
                 case 0:
                 {
                     // Initialize measurement.
+					cerr << "I initated, sm is = " << stageMoving << endl;
                     distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     stageMeasuring++;
+					cerr << "initate  0 complete, measuring is = " << stageMeasuring << endl;
+					cerr << "initate  0 complete, moving is = " << stageMoving << endl;
+					
                 }
                     break;
                 case 1:
@@ -88,6 +94,8 @@ namespace automotive {
                         absPathStart = vd.getAbsTraveledPath();
                     }
                     distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+					cerr << "initate 1 complete, measuring is = " << stageMeasuring << endl;
+					cerr << "initate 1 complete, moving is = " << stageMoving << endl;
                 }
                     break;
                 case 2:
@@ -102,10 +110,14 @@ namespace automotive {
                         const double GAP_SIZE = (absPathEnd - absPathStart);
 
                         cerr << "The gap for parking is = " << GAP_SIZE << endl;
+						
 
                         if ((stageMoving < 1) && (GAP_SIZE > 10)) {
                             stageMoving = 1;
                         }
+						
+						cerr << "initate complete, measuring is = " << stageMeasuring << endl;
+					    cerr << "initate complete, moving is = " << stageMoving << endl;
                     }
                     distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                 }
@@ -114,6 +126,7 @@ namespace automotive {
 
 
                cerr << "Value that will be returned is " << stageMoving << endl;
+			   
                 return stageMoving;
                 }
 

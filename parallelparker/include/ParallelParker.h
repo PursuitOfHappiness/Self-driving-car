@@ -71,7 +71,7 @@ namespace automotive {
 
             odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode body();
 
-            virtual double check();
+            virtual unsigned int check();
 
         private:
 
