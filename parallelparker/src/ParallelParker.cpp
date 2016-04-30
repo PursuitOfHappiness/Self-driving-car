@@ -54,12 +54,12 @@ namespace automotive {
 
         }
 
-        int ParallelParker::check () {
+        double ParallelParker::check () {
 
-            int stageMoving,stageMeasuring,absPathStart,absPathEnd = 0;
+            double stageMoving,stageMeasuring,absPathStart,absPathEnd,distanceOld = 0;
 
             const double INFRARED_FRONT_RIGHT = 0;
-            const double INFRARED_REAR_RIGHT = 1;
+          //  const double INFRARED_REAR_RIGHT = 1;
 
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
@@ -113,7 +113,7 @@ namespace automotive {
             }
 
 
-
+               cerr << "Value that will be returned is " << stageMoving << endl;
                 return stageMoving;
                 }
 
@@ -126,14 +126,14 @@ namespace automotive {
 	    
             const double INFRARED_FRONT_RIGHT = 0;
             //const double INFRARED_REAR_RIGHT = 1;
-	    const double INFRARED_REAR_CENTER = 2;
-         //   double distanceOld = 0;
-           // double c = 0;
-           // double absPathStart = 0;
-           // double absPathEnd = 0;
-            double x = 0;
-           int sM = check();
-          //  int stageMeasuring = 0;
+	        const double INFRARED_REAR_CENTER = 2;
+            //   double distanceOld = 0;
+             // double c = 0;
+             // double absPathStart = 0;
+             // double absPathEnd = 0;
+             double x = 0;
+             int sM = check();
+            //  int stageMeasuring = 0;
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // 1. Get most recent vehicle data:
@@ -151,7 +151,7 @@ namespace automotive {
 
                 // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
 
-              cerr << "Stage is = " << stageMoving << endl;
+              cerr << "Stage is = " << sM << endl;
 
                 if (sM == 0) {
                     // Make sure that car starts moving;
