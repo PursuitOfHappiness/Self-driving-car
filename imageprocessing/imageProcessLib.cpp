@@ -8,18 +8,55 @@ imageProcess::imageProcess() {
 
 void imageProcess::processImage(cv::Mat &image) {
     frame = &image;
+    if (frame == NULL) {
+        std::cout << "Can't read frame" << std::endl;
+    }
+    else {
+        theInterestingPart();
+    }
+
 }
 
 void imageProcess::processImage(IplImage &image) {
     *frame = cv::cvarrToMat(&image, false, true, 0, 0);
+    if (frame == NULL) {
+        std::cout << "Can't read frame" << std::endl;
+    }
+    else {
+        theInterestingPart();
+    }
+}
 
-
-
+void imageProcess::theInterestingPart() {
+    if (usesRoiMaker) {
+        ROIMaker();
+    }
+    if (usesContrast) {
+        Contrast();
+    }
+    if (usesfixLight) {
+        fixLight();
+    }
+    if (usesMakeBinary) {
+        makeBinary();
+    }
+    if (usesThreshold) {
+        Theshold();
+    }
+    if (usesFilterWhiteAreas) {
+        filterWhiteAreas();
+    }
+    if (usesSkelMaker) {
+        skelMaker();
+    }
+    if (usesHoughLinesPLR) {
+        HoughlinesPLR();
+    }
 }
 
 void imageProcess::setSize(int width, int height) {
-    origWidth = frame->cols;
-    origHeight = frame->rows;
+    origWidth = (short) frame->cols;
+    origHeight = (short) frame->rows;
     cv::resize(*frame, *frame, cv::Size(width, height));
 }
 

@@ -19,7 +19,6 @@ private:
     bool usesThreshold;
     bool usesfixLight;
     bool usesRoiMaker;
-    bool usesRoiSplitMaker;
     bool usesSkelMaker;
     bool usesFilterWhiteAreas;
     bool usesHoughLinesPLR;
@@ -81,6 +80,8 @@ public:
 
 
 private:
+
+    void theInterestingPart();
     // Makes Mat single channel grayscale, adds blur, thresholds image
     // thres = double value for the threshold (0-255)
     void makeBinary();
