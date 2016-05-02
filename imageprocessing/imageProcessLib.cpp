@@ -297,7 +297,7 @@ void imageProcess::HoughlinesPLR() {
 	cv::Mat Left;
 	cv::Mat Right;
 
-	ROISplitMaker(*frame, Left, Right);
+	ROISplitMaker(Left, Right);
 
 	// detect lines LeftImage using HoughLinesProbalistic
 	HoughLinesP(Left, linesHL, 1, CV_PI / 180, houghThreshold, minLineLength, maxLineGap);
