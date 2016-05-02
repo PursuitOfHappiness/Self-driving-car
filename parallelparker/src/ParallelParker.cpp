@@ -54,99 +54,26 @@ namespace automotive {
 
         }
 
-        double ParallelParker::check () {
-			
-			int stageMeasuring = 0;
-
-            double stageMoving,absPathStart,absPathEnd,distanceOld = 0;
-
-            const double INFRARED_FRONT_RIGHT = 0;
-          //  const double INFRARED_REAR_RIGHT = 1;
-
-
-            while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-
-                Container containerSensorBoardData = getKeyValueDataStore().get(automotive::miniature::SensorBoardData::ID());
-                SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
-
-                Container containerVehicleData = getKeyValueDataStore().get(automotive::VehicleData::ID());
-                VehicleData vd = containerVehicleData.getData<VehicleData> ();
-
-
-                switch (stageMeasuring) {
-                case 0:
-                {
-                    // Initialize measurement.
-					cerr << "I initated, sm is = " << stageMoving << endl;
-                    distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                    stageMeasuring++;
-					cerr << "initate  0 complete, measuring is = " << stageMeasuring << endl;
-					cerr << "initate  0 complete, moving is = " << stageMoving << endl;
-					
-                }
-                    break;
-                case 1:
-                {
-                    // Checking for sequence +, -.
-                    if ((distanceOld > 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 1 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 20)) {
-                        // Found sequence +, -.
-                        stageMeasuring = 2;
-                        absPathStart = vd.getAbsTraveledPath();
-                    }
-                    distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-					cerr << "initate 1 complete, measuring is = " << stageMeasuring << endl;
-					cerr << "initate 1 complete, moving is = " << stageMoving << endl;
-                }
-                    break;
-                case 2:
-                {
-                    // Checking for sequence -, +.
-                    if ((distanceOld < 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 20))
-                    {
-                        // Found sequence -, +.
-                        stageMeasuring = 1;
-                        absPathEnd = vd.getAbsTraveledPath();
-
-                        const double GAP_SIZE = (absPathEnd - absPathStart);
-
-                        cerr << "The gap for parking is = " << GAP_SIZE << endl;
-						
-
-                        if ((stageMoving < 1) && (GAP_SIZE > 10)) {
-                            stageMoving = 1;
-                        }
-						
-						cerr << "initate complete, measuring is = " << stageMeasuring << endl;
-					    cerr << "initate complete, moving is = " << stageMoving << endl;
-                    }
-                    distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                }
-                    break;
-            }
-
-
-               cerr << "Value that will be returned is " << stageMoving << endl;
-			   
-                return stageMoving;
-                }
-
-                return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
-        }
-
         // This method will do the main data processing job.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode ParallelParker::body() {
 		
 	    
             const double INFRARED_FRONT_RIGHT = 0;
-            //const double INFRARED_REAR_RIGHT = 1;
-	        const double INFRARED_REAR_CENTER = 2;
-            //   double distanceOld = 0;
-             // double c = 0;
-             // double absPathStart = 0;
-             // double absPathEnd = 0;
-             double x = 0;
-             int sM = check();
-            //  int stageMeasuring = 0;
+          //  const double INFRARED_REAR_RIGHT = 1;
+	 //   const double INFRARED_REAR_CENTER = 2;
+            double distanceOld = 0;
+            double distance = 0;
+            double absPathStart = 0;
+            double absPathEnd = 0;
+            int stage = 0; 
+
+
+            double fsd = 0; //Real life should be = 10
+            double ssd = 0; 
+            
+            double x = 0;
+            int stageMoving = 0;
+            int stageMeasuring = 0;
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // 1. Get most recent vehicle data:
@@ -160,65 +87,172 @@ namespace automotive {
                 // Create vehicle control data. Obs! -> only for the simulator
                 VehicleControl vc;
 
-                
+
+                  
+                  
+                 
 
                 // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
 
-              cerr << "Stage is = " << sM << endl;
+              cerr << "Stage is = " << stage << endl;
 
-                if (sM == 0) {
+                if (stageMoving == 0) {
                     // Make sure that car starts moving;
                     vc.setSpeed(1.8);
+                    distance = vd.getAbsTraveledPath();
                     //c = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                    // cerr << "Sensor value is = " << c  << endl;
                     vc.setSteeringWheelAngle(0);
-                }
-                if ((sM > 0) && (sM < 40)) {
-                    // Decrease the speed to the speed, on which we will recieve enough info;
-                   // cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
-                    vc.setSpeed(.38);
-                    vc.setSteeringWheelAngle(0);
-                    sM++;
-                }
-                if ((sM >= 40) && (sM < 45)) {
+                }   
+                 if (stageMoving == 1) {
+                       stage = 1;
+		       stageMoving ++; 
+                       fsd = 2;
+                  }
+
+
+                if (stage == 1) {
+                   //  Decrease the speed to the speed, on which we will recieve enough info;
+                   cerr << "Faceless value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
+                   vc.setSpeed(1);
+                   vc.setSteeringWheelAngle(0);
+		   distance = vd.getAbsTraveledPath();
+		   cerr << "Distance = " << distance << endl;
+                   stage = 6;
+                   	
+               }
+                      
+	      
+
+                      if(stage == 6 && vd.getAbsTraveledPath() - distance > fsd){
+	       		cerr << "First stop" << endl;
+                        vc.setSpeed(0);
+                        vc.setSteeringWheelAngle(0);
+                        stage = 2;
+
+	       		}else if (stage == 6){
+				vc.setSpeed(1);
+                    cerr << "Backtrack" << endl;
+			}
+	
+         //if (stageMoving > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT) < 0) {
+                   //  Decrease the speed to the speed, on which we will recieve enough info;
+         //          cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
+               //    vc.setSpeed(.38);
+             //      stageMoving++;
+             //      vc.setSteeringWheelAngle(0);
+             //      cerr << "absPathStartis = " << distance << endl;
+               // if (stageMoving == 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT) > 0) {
                     // Stop. Place found;
-                    vc.setSpeed(0);
-                    vc.setSteeringWheelAngle(0);
-                    sM++;
-                }
-                if ((sM >= 45) && (sM < 85)) {
-                    // Backwards, steering wheel to the right.
-                    vc.setSpeed(-1.5);
-                    x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
-                    cerr << "Sensor value is = " << x << endl;
-                    vc.setSteeringWheelAngle(x);
-                    sM++;
-                }
-                if ((sM >= 85) && (sM < 180)) {
-                    // Backwards, steering wheel to the left.
-                    vc.setSpeed(-.375);
-                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5));
-                    sM++;
-                } 
-                if((sM >= 180) && (((sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 5)  || (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))))    {
-
+		//    cerr << "otherwise the car wouldn't stop" << endl;
+                //    vc.setSpeed(0);
+                 //   vc.setSteeringWheelAngle(0);
+                 //   stageMoving++;
+                  
+                //    cerr << "absPathStartis = " << distance << endl;
                     
-                    vc.setSpeed(-1);
-                    vc.setSteeringWheelAngle(0);
-                    sM++;
+           //     }
+                if (stage == 2) {
+         
+                     distance = vd.getAbsTraveledPath();
+                         ssd = sqrt(pow(fsd,2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2));
+                         vc.setSpeed(-1.5);
+                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
+                            vc.setSteeringWheelAngle(x);
+                            stage = 7;
+                  
+		}
+                    if(stage == 7 && vd.getAbsTraveledPath() - distance > ssd){
+	       	       	cerr << "cerr sounds like C error" << endl;
+                           vc.setSpeed(0);
+                          
+                         cerr << "Sensor value is = " << x << endl;
+                        vc.setSteeringWheelAngle(0);
+                        stage = 3;
 
-                    }
+	                                                    
+                      }else if (stage == 7) {
+                         vc.setSpeed(-1.5);
+                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
+			 vc.setSteeringWheelAngle(x);
+			}
+                   
+                   
+                  
+                                         
+                if (stage == 3) {
 
-                if ((sM >= 180) && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 10))  {
-                    // Stop.
+                        distance = vd.getAbsTraveledPath(); 
+                        stage = 8;
+		}
+                    // Backwards, steering wheel to the left.
+                     if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.4){
+			
+                        vc.setSpeed(0);
+                        vc.setSteeringWheelAngle(0);    
+                      stage = 4;
+
+                } else if (stage == 8) {
+
+		 vc.setSpeed(-.375);
+                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5));
+		}
+
+
+
+                 if(stage == 4) {
+
                     vc.setSpeed(0);
                     vc.setSteeringWheelAngle(0);
-                }
+                       
+             
+                 }
+               
 
                 // Measuring state machine.
+                switch (stageMeasuring) {
+                    case 0:
+                    {
+                        // Initialize measurement.
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                        stageMeasuring++;
+                    }
+                        break;
+                    case 1:
+                    {
+                        // Checking for sequence +, -.
+                        if ((distanceOld > 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 1 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 20)) {
+                            // Found sequence +, -.
+                            stageMeasuring = 2;
+                            absPathStart = vd.getAbsTraveledPath();
+                        }
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                    }
+                        break;
+                    case 2:
+                    {
+                        // Checking for sequence -, +.
+                        if ((distanceOld < 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 20)) 
+                           {
+                            // Found sequence -, +.
+                            stageMeasuring = 1;
+                            absPathEnd = vd.getAbsTraveledPath();
 
+                            const double GAP_SIZE = (absPathEnd - absPathStart);
+
+                            cerr << "The gap for parking is = " << GAP_SIZE << endl;
+
+                            if ((stageMoving < 1) && (GAP_SIZE > 10)) {
+                                stageMoving = 1;
+                            }
+                        }
+                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                    }
+                        break;
+                }
 
                 // Create container for finally sending the data.
+		cerr << "Speed is " << vc.getSpeed() << endl;
                 Container c(vc);
                 // Send container.
                 getConference().send(c);
@@ -228,4 +262,3 @@ namespace automotive {
         }
     }
 } // automotive::miniature
-
