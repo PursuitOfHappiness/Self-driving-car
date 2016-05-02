@@ -3,6 +3,14 @@
 
 imageProcess::imageProcess() {
 
+    usesContrast = false;
+    usesHoughLinesPLR = false;
+    usesFilterWhiteAreas = false;
+    usesRoiMaker = false;
+    usesfixLight = false;
+    usesMakeBinary = false;
+    usesSkelMaker = false;
+    usesThreshold = false;
 
 }
 
@@ -28,6 +36,7 @@ void imageProcess::processImage(IplImage &image) {
 }
 
 void imageProcess::theInterestingPart() {
+    setSize(320, 240);
     if (usesRoiMaker) {
         ROIMaker();
     }
@@ -52,6 +61,7 @@ void imageProcess::theInterestingPart() {
     if (usesHoughLinesPLR) {
         HoughlinesPLR();
     }
+    resetSize();
 }
 
 void imageProcess::setSize(int width, int height) {
