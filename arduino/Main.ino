@@ -13,7 +13,7 @@
 // Constants //
 //-----------//
 
-// Servo //
+// Remote Control //
 #define REMOTE_PIN_STEER        3           // Steering pin
 #define REMOTE_PIN_ESC          9           // esc Pin
 
@@ -61,6 +61,7 @@ void setup()
   ir_rc = new InfraRed(IR_REAR_CENTER_PIN);
   us_c = new UltraSonic(FC_08_ADDRESS);
   us_r = new UltraSonic(FR_08_ADDRESS);
+  rc = new RemoteControl(REMOTE_PIN_STEER, REMOTE_PIN_ESC, dc);
   // Setup the serial connection with correct baud rate//
   Serial.begin(BAUD_RATE);
   

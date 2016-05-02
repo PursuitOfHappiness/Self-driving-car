@@ -11,7 +11,7 @@ class RemoteControl
 {
 
   public:
-    RemoteControl(DrivingControl *dc);
+    RemoteControl(int steer_pin, int esc_pin, DrivingControl *dc);
     
 
 

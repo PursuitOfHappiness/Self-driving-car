@@ -2,10 +2,12 @@
 
 void rcControllerInterruptOn();
 DrivingControl* serv;
+int STEER_PIN;
 
-RemoteControl::RemoteControl(DrivingControl *dc)
+RemoteControl::RemoteControl(int steer_pin, int esc_pin, DrivingControl *dc)
 {
  serv = dc;
+ STEER_PIN = steer_pin;
  attachInterrupt(digitalPinToInterrupt(3), rcControllerInterruptOn, RISING); // rc-controller turned on
   
 }
@@ -16,6 +18,6 @@ RemoteControl::RemoteControl(DrivingControl *dc)
 void rcControllerInterruptOn() {
     serv->motor.writeMicroseconds(1500);
     serv->steering.write(90);
-    if (pulseIn(3, HIGH, 25000) == 0) { // if RC-Controller is turned off
+    if (pulseIn(STEER_PIN, HIGH, 25000) == 0) { // if RC-Controller is turned off
     }
 }
