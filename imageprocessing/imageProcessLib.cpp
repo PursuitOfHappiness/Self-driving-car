@@ -1,7 +1,3 @@
-//
-// Created by dante on 5/2/16.
-//
-
 #include "imageProcessLib.h"
 
 
@@ -63,40 +59,40 @@ void imageProcess::setDefaultValues(){
 
 
 
-void imageProcess::makeBinary(cv::Mat &input)
+void imageProcess::makeBinary()
 {
 	
-	cv::cvtColor(input, input, cv::COLOR_BGR2GRAY); // make 8-bit single channel
-	cv::GaussianBlur(input, input, cv::Size(5, 5), 2, 2); //Add some blur
-	cv::threshold(input, input, threshold, 255, cv::THRESH_BINARY); // Threshold the image
+	cv::cvtColor(*frame, *frame, cv::COLOR_BGR2GRAY); // make 8-bit single channel
+	cv::GaussianBlur(*frame, *frame, cv::Size(5, 5), 2, 2); //Add some blur
+	cv::threshold(*frame, *frame, threshold, 255, cv::THRESH_BINARY); // Threshold the image
 }
 
-void imageProcess::Contrast(cv::Mat &input) {
+void imageProcess::Contrast() {
 
-	cv::Mat temp = cv::Mat::zeros(input.size(), input.type());
+	cv::Mat temp = cv::Mat::zeros(frame->size(), frame->type());
 
-	for (int y = 0; y < input.rows; y++) {
-		for (int x = 0; x < input.cols; x++) {
+	for (int y = 0; y < frame->rows; y++) {
+		for (int x = 0; x < frame->cols; x++) {
 			for (int c = 0; c < 3; c++) {
 				temp.at<cv::Vec3b>(y, x)[c] =
-					cv::saturate_cast<uchar>(alpha * (input.at<cv::Vec3b>(y, x)[c]) + beta);
+					cv::saturate_cast<uchar>(alpha * (frame->at<cv::Vec3b>(y, x)[c]) + beta);
 			}
 		}
 	}
-	temp.copyTo(input);
+	temp.copyTo(*frame);
 }
 
-void imageProcess::Theshold(cv::Mat &input) {
+void imageProcess::Theshold() {
 
 	cv::Mat temp;
-	input.copyTo(temp);
+	frame->copyTo(temp);
 
 	uchar val = 0;
 
-	for (int y = 0; y < input.rows; y++) {
-		for (int x = 0; x < input.rows; x++) {
+	for (int y = 0; y < frame->rows; y++) {
+		for (int x = 0; x < frame->rows; x++) {
 			uchar c;
-			c = (input.at<cv::Vec3b>(y, x)[0] / 3) + (input.at<cv::Vec3b>(y, x)[1] / 3) + (input.at<cv::Vec3b>(y, x)[2] / 3);
+			c = (frame->at<cv::Vec3b>(y, x)[0] / 3) + (frame->at<cv::Vec3b>(y, x)[1] / 3) + (frame->at<cv::Vec3b>(y, x)[2] / 3);
 			if (c >= light) {
 				temp.at<cv::Vec3b>(y, x)[0] = c;
 				temp.at<cv::Vec3b>(y, x)[1] = c;
@@ -109,27 +105,27 @@ void imageProcess::Theshold(cv::Mat &input) {
 			}
 		}
 	}
-	temp.copyTo(input);
+	temp.copyTo(*frame);
 
 }
 
-void imageProcess::fixLight(cv::Mat &input) {
+void imageProcess::fixLight() {
 
 	cv::Mat temp;
-	input.copyTo(temp);
-	if (input.channels() == 3)
-		cvtColor(input, temp, CV_RGB2GRAY);
-	else if (input.channels() == 1) {
-		input.copyTo(temp);
+	frame->copyTo(temp);
+	if (frame->channels() == 3)
+		cvtColor(*frame, temp, CV_RGB2GRAY);
+	else if (frame->channels() == 1) {
+		frame->copyTo(temp);
 	}
 	else {
 		return;
 	}
 
-	for (int i = 0; i < input.rows; i++) {
+	for (int i = 0; i < frame->rows; i++) {
 
 		uchar c = 0;
-		for (int j = 0; j < input.cols; j++) {
+		for (int j = 0; j < frame->cols; j++) {
 
 			if (c < temp.at<uchar>(i, j)) {
 
@@ -138,7 +134,7 @@ void imageProcess::fixLight(cv::Mat &input) {
 			}
 
 		}
-		for (int k = 0; k < input.cols; k++) {
+		for (int k = 0; k < frame->cols; k++) {
 
 
 			if ((c - range) > temp.at<uchar>(i, k)) {
@@ -152,20 +148,20 @@ void imageProcess::fixLight(cv::Mat &input) {
 
 	}
 
-	temp.copyTo(input);
+	temp.copyTo(*frame);
 
 }
 
-void imageProcess::ROIMaker(cv::Mat &input) {
+void imageProcess::ROIMaker() {
 
 	//Mat for the main ROI mat mask
-	cv::Mat roi(input.size(), CV_8U, cv::Scalar(0));
+	cv::Mat roi(frame->size(), CV_8U, cv::Scalar(0));
 	cv::Mat temp;
 
 	//Getting size info into variables
 	int width = 0, height = 0;
-	width = input.size().width;
-	height = input.size().height;
+	width = frame->size().width;
+	height = frame->size().height;
 
 	std::vector<cv::Point2i> roiPoints;
 	roiPoints.push_back(cv::Point2i(verticalPos, height - horizontalPos)); // Lower left corner ROI, set value to change the ROI
@@ -178,16 +174,16 @@ void imageProcess::ROIMaker(cv::Mat &input) {
 	cv::fillConvexPoly(roi, &ROI_Poly[0], ROI_Poly.size(), 255, 8, 0);
 
 
-	input.copyTo(temp, roi);
-	temp.copyTo(input);
+	frame->copyTo(temp, roi);
+	temp.copyTo(*frame);
 }
 
-void imageProcess::skelMaker(cv::Mat &input) {
-	cv::Mat skel(input.size(), CV_8U, cv::Scalar(0));
-	cv::Mat temp(input.size(), CV_8U);
-	cv::Mat eroded(input.size(), CV_8U);
-	cv::Mat original(input.size(), CV_8U);
-	input.copyTo(original);
+void imageProcess::skelMaker() {
+	cv::Mat skel(frame->size(), CV_8U, cv::Scalar(0));
+	cv::Mat temp(frame->size(), CV_8U);
+	cv::Mat eroded(frame->size(), CV_8U);
+	cv::Mat original(frame->size(), CV_8U);
+	frame->copyTo(original);
 	cv::Mat element = cv::getStructuringElement(cv::MORPH_CROSS, cv::Size(3, 3));
 	bool done;
 	do
@@ -201,15 +197,15 @@ void imageProcess::skelMaker(cv::Mat &input) {
 		done = (cv::countNonZero(original) == 0);
 	} while (!done);
 	//Copy the skeleton to the output variable
-	skel.copyTo(input);
+	skel.copyTo(*frame);
 }
 
-void imageProcess::ROISplitMaker(cv::Mat &input, cv::Mat &outputLeft, cv::Mat &outputRight) {
+void imageProcess::ROISplitMaker(cv::Mat &outputLeft, cv::Mat &outputRight) {
 
 	//Getting size info into variables
 	int width = 0, height = 0;
-	width = input.size().width;
-	height = input.size().height;
+	width = frame->size().width;
+	height = frame->size().height;
 
 	// The 4-points of ROI LEFT, basically a rectangle of original frame
 	std::vector<cv::Point2i> LeftPoints;
@@ -226,8 +222,8 @@ void imageProcess::ROISplitMaker(cv::Mat &input, cv::Mat &outputLeft, cv::Mat &o
 	RightPoints.push_back(cv::Point2i(width / 2, 0)); // Upper left corner ROI
 
 													  //Create mat to hold left and right masks of ROI of image, all black
-	cv::Mat LeftROI(input.size(), CV_8UC1, cv::Scalar(0));
-	cv::Mat RightROI(input.size(), CV_8UC1, cv::Scalar(0));
+	cv::Mat LeftROI(frame->size(), CV_8UC1, cv::Scalar(0));
+	cv::Mat RightROI(frame->size(), CV_8UC1, cv::Scalar(0));
 
 	std::vector<cv::Point2i> ROILeft_Poly;
 	std::vector<cv::Point2i> ROIRight_Poly;
@@ -236,17 +232,17 @@ void imageProcess::ROISplitMaker(cv::Mat &input, cv::Mat &outputLeft, cv::Mat &o
 	cv::fillConvexPoly(RightROI, &ROIRight_Poly[0], ROIRight_Poly.size(), 255, 8, 0);
 
 	//Copy skeleton version of image to the left and right roi mats
-	input.copyTo(outputLeft, LeftROI);
-	input.copyTo(outputRight, RightROI);
+	frame->copyTo(outputLeft, LeftROI);
+	frame->copyTo(outputRight, RightROI);
 }
 
-void imageProcess::filterWhiteAreas(cv::Mat &input) {
+void imageProcess::filterWhiteAreas() {
 
 	std::vector<std::vector<cv::Point>> contours; // Vector for storing contour of large white pixels areas
 	cv::Mat temp; //Temp Mat to not change the original
 	std::vector<cv::Vec4i> hierarchy;
 
-	input.copyTo(temp);
+	frame->copyTo(temp);
 	//find contours will change the src image, imgthres2, so we use a copy to find large white cluster of pixels
 	cv::findContours(temp, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 	std::vector<std::vector<cv::Point>> contours_poly(contours.size());
@@ -287,13 +283,13 @@ void imageProcess::filterWhiteAreas(cv::Mat &input) {
 			//Draws a green (unfilled)polygon on the frame for testing/demo
 			//drawContours(input, contours_poly, i, cv::Scalar(0, 255, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
 			//Draws a black polygon on the binary image where we get too much light
-			drawContours(input, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
+			drawContours(*frame, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
 		}
 
 	}
 }
 
-void imageProcess::HoughlinesPLR(cv::Mat &input) {
+void imageProcess::HoughlinesPLR() {
 
 	//To store the found lines for left and right
 	std::vector<cv::Vec4i> linesHL;
@@ -301,7 +297,7 @@ void imageProcess::HoughlinesPLR(cv::Mat &input) {
 	cv::Mat Left;
 	cv::Mat Right;
 
-	ROISplitMaker(input, Left, Right);
+	ROISplitMaker(*frame, Left, Right);
 
 	// detect lines LeftImage using HoughLinesProbalistic
 	HoughLinesP(Left, linesHL, 1, CV_PI / 180, houghThreshold, minLineLength, maxLineGap);
@@ -313,14 +309,14 @@ void imageProcess::HoughlinesPLR(cv::Mat &input) {
 	{
 		cv::Vec4i l = linesHL[i];
 		// draw the lines
-		cv::line(input, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 3);
+		cv::line(*frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 3);
 
 	}
 	for (size_t i = 0; i < linesHR.size(); i++)
 	{
 		cv::Vec4i r = linesHR[i];
 		// draw the lines
-		cv::line(input, cv::Point(r[0], r[1]), cv::Point(r[2], r[3]), cv::Scalar(0, 0, 255), 3);
+		cv::line(*frame, cv::Point(r[0], r[1]), cv::Point(r[2], r[3]), cv::Scalar(0, 0, 255), 3);
 
 	}
 
