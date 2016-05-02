@@ -3,7 +3,7 @@
 #include <opencv2/imgproc/imgproc.hpp> //Canny
 #include "opencv2/photo/photo.hpp"
 #include "opencv2/features2d.hpp"
-
+#include <iostream>
 
 namespace imgPro
 {
@@ -125,7 +125,6 @@ namespace imgPro
 		input.copyTo(output, roi);
 	}
 
-	
 	void imageProcess::skelMaker(cv::Mat &input, cv::Mat &output) {
 		cv::Mat skel(input.size(), CV_8U, cv::Scalar(0));
 		cv::Mat temp(input.size(), CV_8U);
@@ -184,7 +183,94 @@ namespace imgPro
 		input.copyTo(outputRight, RightROI);
 	}
 
+	void imageProcess::filterWhiteAreas(cv::Mat &input, cv::Mat &output, double whiteAreaMaxLimit,double whiteAreaMin, double whiteLengthLimit) {
 
+		std::vector<std::vector<cv::Point>> contours; // Vector for storing contour of large white pixels areas
+		cv::Mat temp; //Temp Mat to not change the original
+		std::vector<cv::Vec4i> hierarchy;
+
+		input.copyTo(temp);
+		//find contours will change the src image, imgthres2, so we use a copy to find large white cluster of pixels
+		cv::findContours(temp, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
+		std::vector<std::vector<cv::Point>> contours_poly(contours.size());
+		std::vector<cv::RotatedRect> boundRect(contours.size());
+
+		for (size_t i = 0; i < contours.size(); i++)
+		{
+			//approxPolyDP(Mat(contours[i]), contours_poly[i], 8, true);
+			double a = contourArea(contours[i], false);
+			double b = arcLength(contours[i], true);
+			//boundRect[i] = minAreaRect(Mat(contours[i]));
+
+
+			/*double c =  boundRect[i].size.width;
+			double d = boundRect[i].size.height;
+			cout << "ELLIPSE WIDTH";
+			cout << c << endl;
+			cout << "ELLIPSE HEIGHT";
+			cout << d << endl;*/
+			//Prints out the area of found of white pixels
+			std::cout << "Area detected:  ";
+			std::cout << a << std::endl;
+			//Prints out the arc length found of white pixels
+			std::cout << "Length detected:  ";
+			std::cout << b << std::endl;
+			if ((a > whiteAreaMaxLimit) && (a > whiteAreaMin) && (b < whiteLengthLimit)) {
+
+				approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 8, true);
+				//convexHull(Mat(contours[i]), contours_poly[i], true);
+				//ellipse(frame, boundRect[i], Scalar(0, 0, 255), 2, 8);
+				/*Point2f rect_points[4];
+				boundRect[i].points(rect_points);
+
+				for (int j = 0; j < 4; j++) {
+				line(frame, rect_points[j], rect_points[(j + 1) % 4], Scalar(0, 0, 255), 1, 8);
+				}*/
+
+
+				//Draws a green (unfilled)polygon on the frame for testing/demo
+				drawContours(input, contours_poly, i, cv::Scalar(0, 255, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
+				//Draws a black polygon on the binary image where we get too much light
+				drawContours(output, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
+			}
+
+		}
+	}
+
+	void imageProcess::HoughlinesPLR(cv::Mat &input, cv::Mat output, double houghThreshold, double minLineLength, double maxLineGap) {
+
+		//To store the found lines for left and right
+		std::vector<cv::Vec4i> linesHL;
+		std::vector<cv::Vec4i> linesHR;
+		cv::Mat Left;
+		cv::Mat Right;
+	
+		ROISplitMaker(input, Left, Right);
+
+			// detect lines LeftImage using HoughLinesProbalistic
+			HoughLinesP(Left, linesHL, 1, CV_PI / 180, houghThreshold, minLineLength, maxLineGap);
+
+			// detect lines RightImage using HoughLinesProbalistic
+			HoughLinesP(Right, linesHR, 1, CV_PI / 180, houghThreshold, minLineLength, maxLineGap);
+
+			for (size_t i = 0; i < linesHL.size(); i++)
+			{
+				cv::Vec4i l = linesHL[i];
+				// draw the lines
+				cv::line(output, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]),cv::Scalar(0, 0, 255), 3);
+
+			}
+			for (size_t i = 0; i < linesHR.size(); i++)
+			{
+				cv::Vec4i r = linesHR[i];
+				// draw the lines
+				cv::line(output, cv::Point(r[0], r[1]), cv::Point(r[2], r[3]), cv::Scalar(0, 0, 255), 3);
+
+			}
+
+		
+
+	}
 }
 	
 
