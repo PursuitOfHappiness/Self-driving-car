@@ -55,6 +55,7 @@ namespace automotive {
     namespace miniature {
 
         using namespace std;
+        using namespace serial;
         using namespace odcore::base;
         using namespace odcore::data;
         using namespace odtools::recorder;
@@ -62,7 +63,8 @@ namespace automotive {
         Proxy::Proxy(const int32_t &argc, char **argv) :
             TimeTriggeredConferenceClientModule(argc, argv, "proxy"),
             m_recorder(),
-            m_camera()
+            m_camera(),
+            my_serial()
         {}
 
         Proxy::~Proxy() {
@@ -139,8 +141,9 @@ namespace automotive {
             uint32_t captureCounter = 0;
             uint32_t sendCounter = 0;
             uint32_t delayCounter = 0;
+            uint32_t portNumber = 0;
             bool newCommand = false;
-            string port = "/dev/ttyACM0";
+            string port = "/dev/ttyACM";
             unsigned long baud = 57600;
             string result = "";
             string decoded = "";
@@ -148,12 +151,23 @@ namespace automotive {
             string DELIM_PAIR = ";";
             string SPEED_KEY = "speed";
             string ANGLE_KEY = "angle";
-
-            serial::Serial my_serial(port, baud, serial::Timeout::simpleTimeout(1000));
+            bool serialOpen = false;
+			while(!serialOpen && portNumber < 4){
+				string xport = port + to_string(portNumber);
+				try {
+            		my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
+            		serialOpen = true;
+            		cout << "Trying port " << xport << endl;
+        		} catch (IOException e){
+            		cerr << "Error setting up serialport: " << xport << endl;
+            		serialOpen = false;
+        		}
+				portNumber ++;
+			}
 
             // Test if the serial port has been created correctly.
             cout << "Is the serial port open?";
-            if(my_serial.isOpen()){
+            if(my_serial->isOpen()){
               cout << " Yes." << endl;
             } else {
               cout << " No." << endl;
@@ -201,21 +215,21 @@ namespace automotive {
   		            }
 
   		            sendCounter++;  // Dont send to arduino every loop
-  		            if(my_serial.isOpen() && sendCounter == 5){
+  		            if(my_serial->isOpen() && sendCounter == 5){
   		               stringstream strStream;
   		               string toSend = "";
   		               strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
   		               << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
   		               strStream >> toSend;
   		               string encoded = encodeNetstring(toSend);
-  		               my_serial.write(encoded);
+  		               my_serial->write(encoded);
   		               cout << "sent: " << encoded << endl;
   		               sendCounter = 0;
   		            }
                   // Read to a buffer for incomiing data
   		            size_t readSize = 1;
-  		            while (my_serial.available() > 0){
-  		              string c = my_serial.read(readSize);
+  		            while (my_serial->available() > 0){
+  		              string c = my_serial->read(readSize);
   		              result += c;
   		              if (c == ","){
   		                newCommand = true; // When a full netstring has arrived

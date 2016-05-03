@@ -26,7 +26,7 @@
 #include "opendavinci/odcore/base/module/TimeTriggeredConferenceClientModule.h"
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odtools/recorder/Recorder.h"
-
+#include "serial/serial.h"
 #include "Camera.h"
 
 namespace automotive {
@@ -73,22 +73,17 @@ namespace automotive {
 
             private:
                 virtual void setUp();
-
                 virtual void tearDown();
-
                 void distribute(odcore::data::Container c);
-
                 void vdDistribute(const string);
-
                 void sbdDistribute(const string);
-
                 string decodeNetstring(string);
-
                 string encodeNetstring(string);
 
             private:
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
                 unique_ptr<Camera> m_camera;
+                unique_ptr<serial::Serial> my_serial;
         };
 
     }
