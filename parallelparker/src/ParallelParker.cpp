@@ -61,7 +61,7 @@ namespace automotive {
             const double INFRARED_FRONT_RIGHT = 0;
           //  const double INFRARED_REAR_RIGHT = 1;
 	 //   const double INFRARED_REAR_CENTER = 2;
-            double distanceOld = 0;
+           // double distanceOld = 0;
             double distance = 0;
             double absPathStart = 0;
             double absPathEnd = 0;
@@ -98,16 +98,17 @@ namespace automotive {
 
                 if (stageMoving == 0) {
                     // Make sure that car starts moving;
-                    vc.setSpeed(1.8);
+                    vc.setSpeed(12);
                     distance = vd.getAbsTraveledPath();
                     //c = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                    // cerr << "Sensor value is = " << c  << endl;
-                    vc.setSteeringWheelAngle(0);
+                   
+                    vc.setSteeringWheelAngle(7*3.14/180);
                 }   
                  if (stageMoving == 1) {
                        stage = 1;
 		       stageMoving ++; 
-                       fsd = 2;
+                       fsd = 20;
                   }
 
 
@@ -154,10 +155,13 @@ namespace automotive {
            //     }
                 if (stage == 2) {
          
-                     distance = vd.getAbsTraveledPath();
-                         ssd = sqrt(pow(fsd,2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2));
+                         distance = vd.getAbsTraveledPath();
+                         ssd = sqrt(pow((fsd+5),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 10;
+	                 cerr << "Right turn distance is"<< ssd << endl;
+                         // ssd = 10;
                          vc.setSpeed(-1.5);
-                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
+                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);
+ 			cerr << "Angle"<< ssd << endl;
                             vc.setSteeringWheelAngle(x);
                             stage = 7;
                   
@@ -166,14 +170,14 @@ namespace automotive {
 	       	       	cerr << "cerr sounds like C error" << endl;
                            vc.setSpeed(0);
                           
-                         cerr << "Sensor value is = " << x << endl;
+                         cerr << "Angle is = " << x << endl;
                         vc.setSteeringWheelAngle(0);
                         stage = 3;
 
 	                                                    
                       }else if (stage == 7) {
                          vc.setSpeed(-1.5);
-                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
+                       //  x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
 			 vc.setSteeringWheelAngle(x);
 			}
                    
@@ -186,16 +190,16 @@ namespace automotive {
                         stage = 8;
 		}
                     // Backwards, steering wheel to the left.
-                     if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.4){
-			
+                     if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.77){
+		
                         vc.setSpeed(0);
                         vc.setSteeringWheelAngle(0);    
                       stage = 4;
 
                 } else if (stage == 8) {
 
-		 vc.setSpeed(-.375);
-                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5));
+		    vc.setSpeed(-1.5);
+                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14)));
 		}
 
 
@@ -214,25 +218,25 @@ namespace automotive {
                     case 0:
                     {
                         // Initialize measurement.
-                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                        //distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                         stageMeasuring++;
                     }
                         break;
                     case 1:
                     {
-                        // Checking for sequence +, -.
-                        if ((distanceOld > 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 1 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 20)) {
+                        // No object is found, gap starts
+                        if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 6 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 25)) {
                             // Found sequence +, -.
                             stageMeasuring = 2;
                             absPathStart = vd.getAbsTraveledPath();
                         }
-                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                        //distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     }
                         break;
                     case 2:
                     {
-                        // Checking for sequence -, +.
-                        if ((distanceOld < 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 20)) 
+                        // Object is found, gap ends
+                        if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 5 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 25)) 
                            {
                             // Found sequence -, +.
                             stageMeasuring = 1;
@@ -242,17 +246,17 @@ namespace automotive {
 
                             cerr << "The gap for parking is = " << GAP_SIZE << endl;
 
-                            if ((stageMoving < 1) && (GAP_SIZE > 10)) {
+                            if ((stageMoving < 1) && (GAP_SIZE > 60)) {
                                 stageMoving = 1;
                             }
                         }
-                        distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
+                     //   distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
                     }
                         break;
                 }
 
                 // Create container for finally sending the data.
-		cerr << "Speed is " << vc.getSpeed() << endl;
+		//cerr << "Speed is " << vc.getSpeed() << endl;
                 Container c(vc);
                 // Send container.
                 getConference().send(c);
