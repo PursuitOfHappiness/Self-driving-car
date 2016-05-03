@@ -140,39 +140,36 @@ namespace automotive {
         // This method will do the main data processing job.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Proxy::body() {
             uint32_t captureCounter = 0;
-            uint32_t sendCounter = 0;
-            uint32_t delayCounter = 0;
+            uint32_t sendCounter = 0; // Make sure that we don't send every loop
+            uint32_t delayCounter = 0;  // Delay the send over serial on startup
             uint32_t portNumber = 0;
+            size_t readSize = 1;  // Size of data to read from the serial port
             bool newCommand = false;
             string port = "/dev/ttyACM";
             unsigned long baud = 57600;
-            string result = "";
-            string decoded = "";
-            string DELIM_KEY_VALUE = "=";
-            string DELIM_PAIR = ";";
-            string SPEED_KEY = "speed";
-            string ANGLE_KEY = "angle";
+            string result = ""; // Incoming serial buffer
             bool serialOpen = false;
+
+            // Try opening the serial connections, tries ports 0-4 automatically
       			while(!serialOpen && portNumber < 4){
       				string xport = port + to_string(portNumber);
       				try {
-                  		my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
-                  		serialOpen = true;
-                  		cout << "Trying port " << xport << endl;
-              		} catch (IOException e){
-                  		cerr << "Error setting up serialport: " << xport << endl;
-                  		serialOpen = false;
-              		}
+                my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
+                serialOpen = true;
+                cout << "Trying port " << xport << endl;
+              } catch (IOException e){
+                cerr << "Error setting up serialport: " << xport << endl;
+                serialOpen = false;
+              }
+              // Test if the serial port has been created correctly.
+              cout << "Is the serial port open?";
+              if(my_serial->isOpen()){
+                cout << " Yes." << endl;
+              } else {
+                cout << " No." << endl;
+              }
       				portNumber ++;
       			}
-
-            // Test if the serial port has been created correctly.
-            cout << "Is the serial port open?";
-            if(my_serial->isOpen()){
-              cout << " Yes." << endl;
-            } else {
-              cout << " No." << endl;
-            }
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // Delay all communication for a short while to not overflow the arduino
@@ -203,6 +200,7 @@ namespace automotive {
   		              speedTemp = 1500;
   		            }
   		            vcSpeed = speedTemp;
+
   		            double vcAngle = vc.getSteeringWheelAngle();
                   // Convert steering angle from radiants to degrees
   		            int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
@@ -217,40 +215,39 @@ namespace automotive {
 
   		            sendCounter++;  // Dont send to arduino every loop
   		            if(my_serial->isOpen() && sendCounter == 5){
-  		               stringstream strStream;
-  		               string toSend = "";
-  		               strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
-  		               << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
-  		               strStream >> toSend;
-  		               string encoded = Netstrings::encodeNetstring(toSend);
-  		               my_serial->write(encoded);
-  		               cout << "sent: " << encoded << endl;
-  		               sendCounter = 0;
+                    sendOverSerial(vcSpeed, vcAngle);
+  		              sendCounter = 0;
   		            }
-                  // Read to a buffer for incomiing data
-  		            size_t readSize = 1;
+                  // Read to a buffer for incoming data
   		            while (my_serial->available() > 0){
   		              string c = my_serial->read(readSize);
   		              result += c;
   		              if (c == ","){
   		                newCommand = true; // When a full netstring has arrived
   		              }
-
   		            }
   		            if (newCommand){
-  		              decoded = Netstrings::decodeNetstring(result);
+  		              string decoded = Netstrings::decodeNetstring(result);
   		              sbdDistribute(decoded); // Distribute SensorBoardData
                     vdDistribute(decoded); // Distribute VehicleData
   		              newCommand = false;
   		              result = ""; // clear buffer
   		            }
-
 		            }
 		     }
 
 		        cout << "Proxy: Captured " << captureCounter << " frames." << endl;
 
 		        return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
+        }
+
+        // Send netstring to Arduino
+        void Proxy::sendOverSerial(const int16_t speed, const int16_t angle){
+          string toSend = "";
+          toSend += "speed=" + to_string(vcSpeed) + ";angle=" + to_string(vcAngle) + ";";
+          string encoded = Netstrings::encodeNetstring(toSend);
+          my_serial->write(encoded);
+          cout << "sent: " << encoded << endl;
         }
 
         // Distribute VehicleData. Takes a string as input.

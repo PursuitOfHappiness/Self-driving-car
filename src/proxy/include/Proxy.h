@@ -75,10 +75,9 @@ namespace automotive {
                 virtual void setUp();
                 virtual void tearDown();
                 void distribute(odcore::data::Container c);
+                void Proxy::sendOverSerial(const int16_t, const int16_t);
                 void vdDistribute(const string);
                 void sbdDistribute(const string);
-                string decodeNetstring(string);
-                string encodeNetstring(string);
 
             private:
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
