@@ -60,7 +60,7 @@ namespace automotive {
 	    
             const double INFRARED_FRONT_RIGHT = 0;
           //  const double INFRARED_REAR_RIGHT = 1;
-	 //   const double INFRARED_REAR_CENTER = 2;
+	    const double INFRARED_REAR_CENTER = 2;
            // double distanceOld = 0;
             double distance = 0;
             double absPathStart = 0;
@@ -74,6 +74,7 @@ namespace automotive {
             double x = 0;
             int stageMoving = 0;
             int stageMeasuring = 0;
+          //  int stop = 0;
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // 1. Get most recent vehicle data:
@@ -108,7 +109,7 @@ namespace automotive {
                  if (stageMoving == 1) {
                        stage = 1;
 		       stageMoving ++; 
-                       fsd = 20;
+                       fsd = 10;
                   }
 
 
@@ -119,19 +120,19 @@ namespace automotive {
                    vc.setSteeringWheelAngle(0);
 		   distance = vd.getAbsTraveledPath();
 		   cerr << "Distance = " << distance << endl;
-                   stage = 6;
+                   stage = 2;
                    	
                }
                       
 	      
 
-                      if(stage == 6 && vd.getAbsTraveledPath() - distance > fsd){
+                      if(stage == 2 && vd.getAbsTraveledPath() - distance > fsd){
 	       		cerr << "First stop" << endl;
                         vc.setSpeed(0);
                         vc.setSteeringWheelAngle(0);
-                        stage = 2;
+                        stage = 3;
 
-	       		}else if (stage == 6){
+	       		}else if (stage == 2){
 				vc.setSpeed(1);
                     cerr << "Backtrack" << endl;
 			}
@@ -153,58 +154,87 @@ namespace automotive {
                 //    cerr << "absPathStartis = " << distance << endl;
                     
            //     }
-                if (stage == 2) {
+                if (stage == 3) {
          
                          distance = vd.getAbsTraveledPath();
-                         ssd = sqrt(pow((fsd+5),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 10;
+                         ssd = sqrt(pow((fsd+15),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 30;
 	                 cerr << "Right turn distance is"<< ssd << endl;
                          // ssd = 10;
                          vc.setSpeed(-1.5);
                          x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);
  			cerr << "Angle"<< ssd << endl;
                             vc.setSteeringWheelAngle(x);
-                            stage = 7;
+                            stage = 4;
                   
 		}
-                    if(stage == 7 && vd.getAbsTraveledPath() - distance > ssd){
+                    if(stage == 4 && vd.getAbsTraveledPath() - distance > ssd){
 	       	       	cerr << "cerr sounds like C error" << endl;
                            vc.setSpeed(0);
                           
                          cerr << "Angle is = " << x << endl;
                         vc.setSteeringWheelAngle(0);
-                        stage = 3;
+                        stage = 5;
 
 	                                                    
-                      }else if (stage == 7) {
+                      }else if (stage == 4) {
                          vc.setSpeed(-1.5);
                        //  x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
 			 vc.setSteeringWheelAngle(x);
 			}
                    
-                   
-                  
+            
                                          
-                if (stage == 3) {
+                if (stage == 5) {
 
                         distance = vd.getAbsTraveledPath(); 
-                        stage = 8;
+                        stage = 6;
 		}
                     // Backwards, steering wheel to the left.
-                     if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.77){
+                     if((stage == 6 && vd.getAbsTraveledPath() - distance > ssd*0.77)){ 
+//|| (stage == 6 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))){
 		
                         vc.setSpeed(0);
                         vc.setSteeringWheelAngle(0);    
-                      stage = 4;
+                      stage = 11;
 
-                } else if (stage == 8) {
+                } else if (stage == 6) {
 
 		    vc.setSpeed(-1.5);
                     vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14)));
 		}
 
+                  if(stage == 7) { 
+                     distance = vd.getAbsTraveledPath(); 
+                        stage = 8;
+		
+		} if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.57) {
+			cerr << "ssdstage8" << ssd << endl;
+                    vc.setSpeed(0);
+                    vc.setSteeringWheelAngle(0);
+                    stage = 11;
 
 
-                 if(stage == 4) {
+                   } else if (stage == 8) {
+
+                    vc.setSpeed(2);
+                    vc.setSteeringWheelAngle((90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14)));
+
+		}
+
+                 if(stage == 9) {   distance = vd.getAbsTraveledPath(); 
+                        stage = 10;
+		
+		}    if ((stage == 10 && vd.getAbsTraveledPath() - distance > ssd * 0.37 + 20) || (stage == 10 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8) && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0)) {
+
+			vc.setSpeed(0);
+                    vc.setSteeringWheelAngle(0);
+                    stage = 11;
+
+		} else if (stage == 10) {
+                      vc.setSpeed(-1.5);
+      		      vc.setSteeringWheelAngle(-20);
+       }
+                 if(stage == 11) {
 
                     vc.setSpeed(0);
                     vc.setSteeringWheelAngle(0);
