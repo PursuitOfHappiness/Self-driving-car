@@ -3,6 +3,7 @@
 First you need to create a ImageProcess object: imageProcess Obj;
 Then you need to set the values for each function you want to use with the setter-methods,
 for example setContrast(value,value, bool isActive), where you set the parameters and can set the bool of the function through the call
+You can also use the setters for the bool's to set which function to be run and not, setMakeBinaryBool(bool active)
 
 Only the functions with it's corresponding bool=true will be active, the constructor for the object initializes all bool's with false
 Obj.setDefaultValues(); can be used to set some values for all functions we consider "OK" as default,
@@ -94,13 +95,13 @@ public:
 	void setWhiteFilter(double areaMaxLimit, double areaMin, double areaLength, bool isActive);
 	void setHoughLines(uchar threshold, double maxLineGap, double minLineLength, bool isActive);
 
-	void activateContrast(bool active);
-	void activateMakeBinary(bool active);
-	void activateCustomThreshold(bool active);
-	void activateFixLight(bool active);
-	void activateROI(bool active);
-	void activateWhiteFilter(bool active);
-	void activateHoughLinesPLR(bool active);
+	void setContrastBool(bool active);
+	void setMakeBinaryBool(bool active);
+	void setCustomThresholdBool(bool active);
+	void setFixLightBool(bool active);
+	void setROIBool(bool active);
+	void setWhiteFilterBool(bool active);
+	void setHoughLinesPLRBool(bool active);
 
 private:
 	// the functions that runs all image process functions that are activated by their bool
