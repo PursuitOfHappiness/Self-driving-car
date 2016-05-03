@@ -207,9 +207,9 @@ namespace automotive {
   		            int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
                   // Send the exact value we want to set steering at
   		            if (vcDegree > 25){
-  		              vcAngle = 90 + 25;
+  		              vcAngle = 90 + 40;
   		            } else if (vcDegree < -25){
-  		              vcAngle = 90 - 25;
+  		              vcAngle = 90 - 30;
   		            } else {
   		              vcAngle = 90 + vcDegree;
   		            }
