@@ -42,6 +42,7 @@
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
 #include "serial/serial.h"
+#include "Netstrings.h"
 
 #include "OpenCVCamera.h"
 
@@ -152,18 +153,18 @@ namespace automotive {
             string SPEED_KEY = "speed";
             string ANGLE_KEY = "angle";
             bool serialOpen = false;
-			while(!serialOpen && portNumber < 4){
-				string xport = port + to_string(portNumber);
-				try {
-            		my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
-            		serialOpen = true;
-            		cout << "Trying port " << xport << endl;
-        		} catch (IOException e){
-            		cerr << "Error setting up serialport: " << xport << endl;
-            		serialOpen = false;
-        		}
-				portNumber ++;
-			}
+      			while(!serialOpen && portNumber < 4){
+      				string xport = port + to_string(portNumber);
+      				try {
+                  		my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
+                  		serialOpen = true;
+                  		cout << "Trying port " << xport << endl;
+              		} catch (IOException e){
+                  		cerr << "Error setting up serialport: " << xport << endl;
+                  		serialOpen = false;
+              		}
+      				portNumber ++;
+      			}
 
             // Test if the serial port has been created correctly.
             cout << "Is the serial port open?";
@@ -221,7 +222,7 @@ namespace automotive {
   		               strStream << SPEED_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR
   		               << ANGLE_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
   		               strStream >> toSend;
-  		               string encoded = encodeNetstring(toSend);
+  		               string encoded = Netstrings::encodeNetstring(toSend);
   		               my_serial->write(encoded);
   		               cout << "sent: " << encoded << endl;
   		               sendCounter = 0;
@@ -237,7 +238,7 @@ namespace automotive {
 
   		            }
   		            if (newCommand){
-  		              decoded = decodeNetstring(result);
+  		              decoded = Netstrings::decodeNetstring(result);
   		              sbdDistribute(decoded); // Distribute SensorBoardData
                     vdDistribute(decoded); // Distribute VehicleData
   		              newCommand = false;
@@ -322,56 +323,5 @@ namespace automotive {
           Container c2(sbd);
           getConference().send(c2);
         }
-
-        string Proxy::decodeNetstring(string toDecode){
-          if (toDecode.length() < 3){ // A netstring can't be shorter than 3 characters
-            return "Netstrings: Wrong format";
-          }
-
-          // Check that : and , exists at the proper places
-          size_t semicolonIndex = toDecode.find(':');
-          //cout << "semicolonIndex " << semicolonIndex << endl;
-          size_t commaIndex = toDecode.find(',');
-          //cout << "commaIndex " << commaIndex << endl;
-          if (semicolonIndex == std::string::npos || commaIndex == std::string::npos) {
-            return "Netstrings: No semicolon found, or no comma found";
-          }
-
-          // Parse control number
-          // If the number is anywhere else than in the beginning we are not interested
-          string number = toDecode.substr(0, semicolonIndex);
-          //cout << "number: " << toDecode << endl;
-          unsigned int controlNumber;
-          try {
-            controlNumber = stoi(number);
-          }
-          catch (std::invalid_argument&){
-            return "STOI: Invalid Arguments.";
-          }
-          catch (std::out_of_range&){
-            return "STOI: Out of range.";
-          }
-
-          if (controlNumber < 1){ // the netstring has to contain atleast 1 character to be parsed
-            return "Netstrings: Control Number is to low";
-          }
-
-          // Check that the length of the string is correct
-          toDecode = toDecode.substr(semicolonIndex + 1, controlNumber); // the data that we want to parse
-          //cout << "Stripped String: " << toDecode << endl;
-          //cout << "Length: " << toDecode.length() << endl;
-          if (controlNumber != toDecode.length()){
-            return "Netstrings: Wrong length of data";
-          }
-          return toDecode;
-        }
-
-        string Proxy::encodeNetstring(string toEncode){
-          if (toEncode.length() < 1){
-            return "Netstrings: Nothing to encode";
-          }
-          return to_string(toEncode.length()) + ":" + toEncode + ",";
-        }
-
     }
 } // automotive::miniature
