@@ -151,31 +151,31 @@ void imageProcess::setHoughLines(uchar threshold, double maxLineGap, double minL
 
 }
 
-void imageProcess::activateContrast(bool active){
+void imageProcess::setContrastBool(bool active){
 	usesContrast = active;
 }
 
-void imageProcess::activateMakeBinary(bool active){
+void imageProcess::setMakeBinaryBool(bool active){
 	usesMakeBinary = active;
 }
 
-void imageProcess::activateCustomThreshold(bool active){
+void imageProcess::setCustomThresholdBool(bool active){
 	usesThreshold = active;
 }
 
-void imageProcess::activateFixLight(bool active){
+void imageProcess::setFixLightBool(bool active){
 	usesfixLight = active;
 }
 
-void imageProcess::activateROI(bool active){
+void imageProcess::setROIBool(bool active){
 	usesRoiMaker = active;
 }
 
-void imageProcess::activateWhiteFilter(bool active){
+void imageProcess::setWhiteFilterBool(bool active){
 	usesFilterWhiteAreas = active;
 }
 
-void imageProcess::activateHoughLinesPLR(bool active){
+void imageProcess::setHoughLinesPLRBool(bool active){
 	usesHoughLinesPLR = active;
 }
 
