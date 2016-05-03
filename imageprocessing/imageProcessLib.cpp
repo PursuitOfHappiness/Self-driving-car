@@ -2,7 +2,7 @@
 
 
 imageProcess::imageProcess() {
-
+    //Bool's that activate functions in processImage() are set to false when constructing object
     usesContrast = false;
     usesHoughLinesPLR = false;
     usesFilterWhiteAreas = false;
@@ -14,6 +14,7 @@ imageProcess::imageProcess() {
 
 }
 
+// The actual call to process image (for Mat)
 void imageProcess::processImage(cv::Mat &image) {
     frame = &image;
     if (frame == NULL) {
@@ -24,7 +25,7 @@ void imageProcess::processImage(cv::Mat &image) {
     }
 
 }
-
+// The actual call to process image (for IplImage)
 void imageProcess::processImage(IplImage &image) {
     *frame = cv::cvarrToMat(&image, false, true, 0, 0);
     if (frame == NULL) {
@@ -35,6 +36,7 @@ void imageProcess::processImage(IplImage &image) {
     }
 }
 
+// The function running all different image processes who's bool's set to true
 void imageProcess::theInterestingPart() {
     setSize(320, 240);
     if (usesRoiMaker) {
@@ -70,9 +72,12 @@ void imageProcess::setSize(int width, int height) {
     cv::resize(*frame, *frame, cv::Size(width, height));
 }
 
+// Resets size to original
 void imageProcess::resetSize(){
     cv::resize(*frame, *frame, cv::Size(origWidth, origHeight));
 }
+
+// Function to start object with some default values
 void imageProcess::setDefaultValues(){
     // Contrast() variables
     alpha = 1;
@@ -145,9 +150,6 @@ void imageProcess::setHoughLines(uchar threshold, double maxLineGap, double minL
     this->maxLineGap = maxLineGap;
 
 }
-
-
-
 
 
 void imageProcess::makeBinary()
@@ -400,14 +402,14 @@ void imageProcess::HoughlinesPLR() {
     {
         cv::Vec4i l = linesHL[i];
         // draw the lines
-        cv::line(*frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(0, 0, 255), 3);
+        cv::line(*frame, cv::Point(l[0], l[1]), cv::Point(l[2], l[3]), cv::Scalar(255, 255, 255), 3);
 
     }
     for (size_t i = 0; i < linesHR.size(); i++)
     {
         cv::Vec4i r = linesHR[i];
         // draw the lines
-        cv::line(*frame, cv::Point(r[0], r[1]), cv::Point(r[2], r[3]), cv::Scalar(0, 0, 255), 3);
+        cv::line(*frame, cv::Point(r[0], r[1]), cv::Point(r[2], r[3]), cv::Scalar(255, 255, 255), 3);
 
     }
 
