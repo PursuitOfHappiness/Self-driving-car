@@ -57,24 +57,13 @@ namespace automotive {
         // This method will do the main data processing job.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode ParallelParker::body() {
 		
-	    
-            const double INFRARED_FRONT_RIGHT = 0;
-          //  const double INFRARED_REAR_RIGHT = 1;
-	    const double INFRARED_REAR_CENTER = 2;
-           // double distanceOld = 0;
-            double distance = 0;
-            double absPathStart = 0;
-            double absPathEnd = 0;
-            int stage = 0; 
+		const double INFRARED_FRONT_RIGHT = 0;    
+		const double INFRARED_FRONT_RIGHT = 2;
+		
+		double distance, absPathStart, absPathEnd, firstStageDistance, secondStageDistance = 0;
+		
+		int stage, stageMoving, stageMeasuring, angle = 0;
 
-
-            double fsd = 0; //Real life should be = 10
-            double ssd = 0; 
-            
-            double x = 0;
-            int stageMoving = 0;
-            int stageMeasuring = 0;
-          //  int stop = 0;
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // 1. Get most recent vehicle data:
@@ -88,211 +77,146 @@ namespace automotive {
                 // Create vehicle control data. Obs! -> only for the simulator
                 VehicleControl vc;
 
+                 cerr << "Stage is" << stage << endl;
 
-                  
-                  
-                 
-
-                // Moving state machine. Obs! -> Stage Moving is used here, not StageMeasuring
-
-              cerr << "Stage is = " << stage << endl;
-
-                if (stageMoving == 0) {
-                    // Make sure that car starts moving;
-                    vc.setSpeed(12);
-                    distance = vd.getAbsTraveledPath();
-                    //c = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                   // cerr << "Sensor value is = " << c  << endl;
-                   
-                    vc.setSteeringWheelAngle(7*3.14/180);
-                }   
-                 if (stageMoving == 1) {
-                       stage = 1;
-		       stageMoving ++; 
-                       fsd = 10;
-                  }
-
-
-                if (stage == 1) {
-                   //  Decrease the speed to the speed, on which we will recieve enough info;
-                   cerr << "Faceless value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
-                   vc.setSpeed(1);
-                   vc.setSteeringWheelAngle(0);
-		   distance = vd.getAbsTraveledPath();
-		   cerr << "Distance = " << distance << endl;
-                   stage = 2;
-                   	
-               }
-                      
-	      
-
-                      if(stage == 2 && vd.getAbsTraveledPath() - distance > fsd){
-	       		cerr << "First stop" << endl;
-                        vc.setSpeed(0);
-                        vc.setSteeringWheelAngle(0);
-                        stage = 3;
-
-	       		}else if (stage == 2){
-				vc.setSpeed(1);
-                    cerr << "Backtrack" << endl;
-			}
-	
-         //if (stageMoving > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT) < 0) {
-                   //  Decrease the speed to the speed, on which we will recieve enough info;
-         //          cerr << "Sensor value is = " << sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) << endl;
-               //    vc.setSpeed(.38);
-             //      stageMoving++;
-             //      vc.setSteeringWheelAngle(0);
-             //      cerr << "absPathStartis = " << distance << endl;
-               // if (stageMoving == 1 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 0 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT) > 0) {
-                    // Stop. Place found;
-		//    cerr << "otherwise the car wouldn't stop" << endl;
-                //    vc.setSpeed(0);
-                 //   vc.setSteeringWheelAngle(0);
-                 //   stageMoving++;
-                  
-                //    cerr << "absPathStartis = " << distance << endl;
-                    
-           //     }
-                if (stage == 3) {
-         
+                     if (stageMoving == 0) {
+					 
+                         vc.setSpeed(1); // In proxy, all the speed which is bigger than 0 sets vc speed to 1615. 
                          distance = vd.getAbsTraveledPath();
-                         ssd = sqrt(pow((fsd+15),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 30;
-	                 cerr << "Right turn distance is"<< ssd << endl;
-                         // ssd = 10;
-                         vc.setSpeed(-1.5);
-                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);
- 			cerr << "Angle"<< ssd << endl;
-                            vc.setSteeringWheelAngle(x);
-                            stage = 4;
-                  
-		}
-                    if(stage == 4 && vd.getAbsTraveledPath() - distance > ssd){
-	       	       	cerr << "cerr sounds like C error" << endl;
-                           vc.setSpeed(0);
-                          
-                         cerr << "Angle is = " << x << endl;
-                        vc.setSteeringWheelAngle(0);
-                        stage = 5;
+                         vc.setSteeringWheelAngle(7*3,14/180);  // Our car is not moving straight -> Here we make it go a bit to right. Proxy handles radians. 
+                    						   	 
+					 }	
 
-	                                                    
-                      }else if (stage == 4) {
-                         vc.setSpeed(-1.5);
-                       //  x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14) - 5;
-			 vc.setSteeringWheelAngle(x);
-			}
-                   
-            
-                                         
-                if (stage == 5) {
+                     if (stageMoving == 1) {
+					 
+					    stage++;
+					    stageMoving++;
+					    firstStageDistance = 10; 
+					 
+					  }		
+
+                      if (stage == 1) {
+                   // This stage triggers when we found a gap. We keep on moving on the same speed.
+				  
+                         vc.setSpeed(1);
+                         vc.setSteeringWheelAngle(7*3.14/180);
+		                 distance = vd.getAbsTraveledPath();
+		          
+                   stage++;
+                   	
+                      }	
+
+                      if (stage == 2 && vd.getAbsTraveledPath() - distance > firstStageDistance) {  // After we found a gap we need to move 10 extra cm. 
+					                                                                                //After we moved for 10 cm -> we stop.
+					  
+					     vc.setSpeed(0);
+						 vc.setSteering(0);
+						 stage++;
+					  
+					  }	else if (stage == 2) {
+					                                                                                  //We keep on moving until we moved 10 extra cm.
+					     vc.setSpeed(1);
+                         vc.setSteeringWheelAngle(7*3.14/180);
+						 
+					  }			 
+		              
+					  if (stage == 3) {
+					  
+					     distance `= vd.getAbsTraveledPath();
+					     secondStageDistance = sqrt(pow((fsd+15),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 30; // Calculating the distance for second stage
+					     vc.setSpeed(-1.5);  
+                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);		
+                         vc.setSteeringWheelAngle(x);
+                         stage++;					  
+					  
+					  }  if(stage == 4 && vd.getAbsTraveledPath() - distance > secondStageDistance){
+	       	           
+                         vc.setSpeed(0);
+                         vc.setSteeringWheelAngle(0);
+                        stage++;
+						
+                      } else if (stage == 4) {
+					  
+					       vc.setSpeed(-1.5);
+						   vc.setSteeringWheelAngle(x);
+					  
+					  } 
+					  
+					  if (stage == 5) {
 
                         distance = vd.getAbsTraveledPath(); 
-                        stage = 6;
-		}
-                    // Backwards, steering wheel to the left.
-                     if((stage == 6 && vd.getAbsTraveledPath() - distance > ssd*0.77)){ 
-//|| (stage == 6 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))){
+                        stage++;
+						
+		              } 
+					  
+					  if((stage == 6 && vd.getAbsTraveledPath() - distance > ssd*0.77) 
+					  || (stage == 6 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))){
 		
                         vc.setSpeed(0);
                         vc.setSteeringWheelAngle(0);    
-                      stage = 11;
+                        stage++;
+                     } else if (stage == 6) {
+					 
+					 vc.setSpeed(-1.5);
+					 vc.setSteeringWheelAngle(-x);
+					 
+					 }
+					 
+					 if (stage == 7) {
+					 
+					  vc.setSpeed(0);
+                      vc.setSteeringWheelAngle(0);
+					 
+					 }
+					 
+					 switch (stageMeasuring) {
+					 
+					 case 0 :    // No object is found, gap starts
 
-                } else if (stage == 6) {
-
-		    vc.setSpeed(-1.5);
-                    vc.setSteeringWheelAngle(-(90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14)));
-		}
-
-                  if(stage == 7) { 
-                     distance = vd.getAbsTraveledPath(); 
-                        stage = 8;
-		
-		} if(stage == 8 && vd.getAbsTraveledPath() - distance > ssd*0.57) {
-			cerr << "ssdstage8" << ssd << endl;
-                    vc.setSpeed(0);
-                    vc.setSteeringWheelAngle(0);
-                    stage = 11;
-
-
-                   } else if (stage == 8) {
-
-                    vc.setSpeed(2);
-                    vc.setSteeringWheelAngle((90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14)));
-
-		}
-
-                 if(stage == 9) {   distance = vd.getAbsTraveledPath(); 
-                        stage = 10;
-		
-		}    if ((stage == 10 && vd.getAbsTraveledPath() - distance > ssd * 0.37 + 20) || (stage == 10 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8) && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0)) {
-
-			vc.setSpeed(0);
-                    vc.setSteeringWheelAngle(0);
-                    stage = 11;
-
-		} else if (stage == 10) {
-                      vc.setSpeed(-1.5);
-      		      vc.setSteeringWheelAngle(-20);
-       }
-                 if(stage == 11) {
-
-                    vc.setSpeed(0);
-                    vc.setSteeringWheelAngle(0);
-                       
-             
-                 }
-               
-
-                // Measuring state machine.
-                switch (stageMeasuring) {
-                    case 0:
-                    {
-                        // Initialize measurement.
-                        //distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                        stageMeasuring++;
-                    }
-                        break;
-                    case 1:
-                    {
-                        // No object is found, gap starts
-                        if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 6 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 25)) {
-                            // Found sequence +, -.
-                            stageMeasuring = 2;
+					  {
+					  
+					      if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 6 || sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 25)) {
+                           
+                            stageMeasuring++;
                             absPathStart = vd.getAbsTraveledPath();
-                        }
-                        //distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                    }
-                        break;
-                    case 2:
-                    {
-                        // Object is found, gap ends
-                        if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 5 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 25)) 
-                           {
-                            // Found sequence -, +.
-                            stageMeasuring = 1;
-                            absPathEnd = vd.getAbsTraveledPath();
-
-                            const double GAP_SIZE = (absPathEnd - absPathStart);
-
-                            cerr << "The gap for parking is = " << GAP_SIZE << endl;
+					  
+					  }
+					 
+					 } break ;
+					 
+					 case 1 : // Object is found, gap ends
+					 
+					 {
+					   if ((sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 6 && sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) < 25)) {
+					   
+					   stageMeasuring--;
+					   absPathEnd = vd.getAbsTraveledPath();
+					   
+					   const double GAP_SIZE = (absPathEnd - absPathStart);	
+					   
+					    cerr << "The gap for parking is = " << GAP_SIZE << endl;
 
                             if ((stageMoving < 1) && (GAP_SIZE > 60)) {
                                 stageMoving = 1;
                             }
-                        }
-                     //   distanceOld = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                    }
-                        break;
-                }
-
-                // Create container for finally sending the data.
-		//cerr << "Speed is " << vc.getSpeed() << endl;
-                Container c(vc);
-                // Send container.
-                getConference().send(c);
-            }
-
-            return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
-        }
-    }
-} // automotive::miniature
+					   
+					   
+					   }
+					 
+					 
+					 
+					 
+					 } break; 
+					 
+					 }
+					 
+					 Container c(vc);
+					 getConference().send(c);
+					 
+					 }
+					 
+				  return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;	 
+			}
+		}	
+	}	
+	
