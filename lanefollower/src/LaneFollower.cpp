@@ -46,7 +46,8 @@ namespace automotive {
         LaneFollower::LaneFollower(const int32_t &argc, char **argv) : TimeTriggeredConferenceClientModule(argc, argv, "lanefollower"),
             m_hasAttachedToSharedImageMemory(false),
             m_sharedImageMemory(),
-            m_image(NULL),
+          //  m_image(NULL),
+            m_image(),
             m_debug(false),
             m_font(),
             m_previousTime(),
@@ -59,7 +60,7 @@ namespace automotive {
 
             no_lines(false),
             overtake(false),
-
+            // m_proc(), //TO-DO fix the undefined reference problem
             m_vehicleControl() {}
 
         LaneFollower::~LaneFollower() {}
@@ -74,8 +75,9 @@ namespace automotive {
 
         void LaneFollower::tearDown() {
             // This method will be call automatically _after_ return from body().
-            if (m_image != NULL) {
-                cvReleaseImage(&m_image);
+            //if (m_image != NULL) {
+            if (!m_image.empty()) {
+              m_image.release();
             }
             if (m_debug) {
                 cvDestroyWindow("WindowShowImage");
@@ -101,19 +103,23 @@ namespace automotive {
                     Lock l(m_sharedImageMemory);
                     const uint32_t numberOfChannels = 3;
                     // For example, simply show the image.
-                    if (m_image == NULL) {
-                        m_image = cvCreateImage(cvSize(si.getWidth(), si.getHeight()), IPL_DEPTH_8U, numberOfChannels);
+                    //if (m_image == NULL) {
+                    if (m_image.empty()) {
+                        //m_image = cvCreateImage(cvSize(si.getWidth(), si.getHeight()), IPL_DEPTH_8U, numberOfChannels);
+                        m_image.create(cv::Size(si.getWidth(), si.getHeight()), CV_8UC3);
                     }
 
                     // Copying the image data is very expensive...
-                    if (m_image != NULL) {
-                        memcpy(m_image->imageData,
+                    //if (m_image != NULL) {
+                    if (!m_image.empty()) {
+
+                        memcpy(m_image.data,
                                m_sharedImageMemory->getSharedMemory(),
                                si.getWidth() * si.getHeight() * numberOfChannels);
                     }
 
                     // Mirror the image.
-                    cvFlip(m_image, 0, -1);
+                    //cvFlip(&m_image, 0, -1);
 
                     retVal = true;
                 }
@@ -131,15 +137,22 @@ namespace automotive {
 
 
             TimeStamp beforeImageProcessing;
-            for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
+            //for(int32_t y = m_image->height - 8; y > m_image->height * .6; y -= 10) {
+            for(int32_t y = m_image.rows - 8; y > m_image.rows * .6; y -= 10) {
                 // Search from middle to the left:
-                CvScalar pixelLeft;
+                //CvScalar pixelLeft;
+                //Vec3b pixelLeft;
                 CvPoint left;
                 left.y = y;
                 left.x = prev_left_x;
-                for(int x = m_image->width/2; x > 0; x--) {
-                    pixelLeft = cvGet2D(m_image, y, x);
-                    if (pixelLeft.val[0] >= 200) {
+              //for(int x = m_image->width/2; x > 0; x--) {
+                for(int x = m_image.cols/2; x > 0; x--) {
+                    // pixelLeft = cvGet2D(m_image, y, x);
+
+                    //pixelLeft = m_image.at<Vec3b>(Point(y,x));
+                    //if (pixelLeft.val[0] >= 200) {
+                      if (m_image.at<cv::Vec3b>(y,x)[0] >= 200 && m_image.at<cv::Vec3b>(y,x)[1] >= 200 && m_image.at<cv::Vec3b>(y,x)[2] >= 250){   // (y,x)
+                      //if (m_image.at<Vec3b>(x,y)[0] >= 200 && m_image.at<Vec3b>(x,y)[1] >= 200 && m_image.at<Vec3b>(x,y)[2] >= 250){ // (x,y)
                         left.x = x;
                         prev_left_x = x;
                         break;
@@ -147,13 +160,17 @@ namespace automotive {
                 }
 
                 // Search from middle to the right:
-                CvScalar pixelRight;
+                //CvScalar pixelRight;
                 CvPoint right;
                 right.y = y;
                 right.x = prev_right_x;
-                for(int x = m_image->width/2; x < m_image->width; x++) {
-                    pixelRight = cvGet2D(m_image, y, x);
-                    if (pixelRight.val[0] >= 200) {
+                //for(int x = m_image->width/2; x < m_image->width; x++) {
+                for(int x = m_image.cols/2; x < m_image.cols; x++) {
+                    //pixelRight = cvGet2D(m_image, y, x);
+                  //  pixelLeft = m_image.at<uchar>(y,x);
+                    //if (pixelRight.val[0] >= 200) {
+                      if (m_image.at<cv::Vec3b>(y,x)[0] >= 200 && m_image.at<cv::Vec3b>(y,x)[1] >= 200 && m_image.at<cv::Vec3b>(y,x)[2] >= 250){   // (y,x)
+                          // if (m_image.at<Vec3b>(x,y)[0] >= 200 && m_image.at<Vec3b>(x,y)[1] >= 200 && m_image.at<Vec3b>(x,y)[2] >= 250){  //(x,y)
                         right.x = x;
                         prev_right_x = x;
                         break;
@@ -163,19 +180,23 @@ namespace automotive {
                 if (m_debug) {
                     if (left.x > 0) {
                         CvScalar green = CV_RGB(0, 255, 0);
-                        cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
-
+                        //cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
+                        cvLine(&m_image, cvPoint(m_image.cols/2, y), left, green, 1, 8);
                         stringstream sstr;
-                        sstr << (m_image->width/2 - left.x);
-                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
+                        //sstr << (m_image->width/2 - left.x);
+                        sstr << (m_image.cols/2 - left.x);
+                        //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
+                        cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 - 100, y - 2), &m_font, green);
                     }
                     if (right.x > 0) {
                         CvScalar red = CV_RGB(255, 0, 0);
-                        cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
-
+                        //cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
+                        cvLine(&m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
                         stringstream sstr;
-                        sstr << (right.x - m_image->width/2);
-                        cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
+                        //sstr << (right.x - m_image->width/2);
+                        sstr << (right.x - m_image.cols/2);
+                        //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
+                        cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
                     }
                 }
 
@@ -199,12 +220,14 @@ namespace automotive {
                         // Calculate the deviation error.
                         if (right.x > 0) {
                             cerr << "RIGHT" << endl;
-                            e = ((right.x - m_image->width/2.0) - distance)/distance;
+                            //e = ((right.x - m_image->width/2.0) - distance)/distance;
+                            e = ((right.x - m_image.cols/2.0) - distance)/distance;
 
                         }
                         else if (left.x > 0) {
                             cerr << "LEFT" << endl;
-                            e = (distance - (m_image->width/2.0 - left.x))/distance;
+                            //e = (distance - (m_image->width/2.0 - left.x))/distance;
+                            e = (distance - (m_image.cols/2.0 - left.x))/distance;
                         }
                         else {
                             // If no measurements are available, reset PID controller.
@@ -229,8 +252,10 @@ namespace automotive {
             TimeStamp currentTime;
 
             if (m_debug) {
-                if (m_image != NULL) {
-                    cvShowImage("WindowShowImage", m_image);
+                //if (m_image != NULL) {
+                if (!m_image.empty()) {
+                    //cvShowImage("WindowShowImage", m_image);
+                    imshow("WindowSHowImage", m_image);
                     cvWaitKey(10);
                 }
             }
