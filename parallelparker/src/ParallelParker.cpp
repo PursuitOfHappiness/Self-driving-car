@@ -58,7 +58,7 @@ namespace automotive {
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode ParallelParker::body() {
 		
 		const double INFRARED_FRONT_RIGHT = 0;    
-		const double INFRARED_FRONT_RIGHT = 2;
+		const double INFRARED_REAR_CENTER = 2;
 		
 		double distance, absPathStart, absPathEnd, firstStageDistance, secondStageDistance = 0;
 		
@@ -83,7 +83,7 @@ namespace automotive {
 					 
                          vc.setSpeed(1); // In proxy, all the speed which is bigger than 0 sets vc speed to 1615. 
                          distance = vd.getAbsTraveledPath();
-                         vc.setSteeringWheelAngle(7*3,14/180);  // Our car is not moving straight -> Here we make it go a bit to right. Proxy handles radians. 
+                         vc.setSteeringWheelAngle(7*3.14/180);  // Our car is not moving straight -> Here we make it go a bit to right. Proxy handles radians. 
                     						   	 
 					 }	
 
@@ -110,7 +110,7 @@ namespace automotive {
 					                                                                                //After we moved for 10 cm -> we stop.
 					  
 					     vc.setSpeed(0);
-						 vc.setSteering(0);
+						 vc.setSteeringWheelAngle(0);
 						 stage++;
 					  
 					  }	else if (stage == 2) {
@@ -122,11 +122,11 @@ namespace automotive {
 		              
 					  if (stage == 3) {
 					  
-					     distance `= vd.getAbsTraveledPath();
-					     secondStageDistance = sqrt(pow((fsd+15),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 30; // Calculating the distance for second stage
+					     distance = vd.getAbsTraveledPath();
+					     secondStageDistance = sqrt(pow((firstStageDistance+15),2) + pow(sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT),2)) + 30; // Calculating the distance for second stage
 					     vc.setSpeed(-1.5);  
-                         x = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);		
-                         vc.setSteeringWheelAngle(x);
+                         angle = 90 - (atan (1.52/sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT)) * 180 / 3.14);		
+                         vc.setSteeringWheelAngle(angle);
                          stage++;					  
 					  
 					  }  if(stage == 4 && vd.getAbsTraveledPath() - distance > secondStageDistance){
@@ -138,7 +138,7 @@ namespace automotive {
                       } else if (stage == 4) {
 					  
 					       vc.setSpeed(-1.5);
-						   vc.setSteeringWheelAngle(x);
+						   vc.setSteeringWheelAngle(angle);
 					  
 					  } 
 					  
@@ -149,7 +149,7 @@ namespace automotive {
 						
 		              } 
 					  
-					  if((stage == 6 && vd.getAbsTraveledPath() - distance > ssd*0.77) 
+					  if((stage == 6 && vd.getAbsTraveledPath() - distance > secondStageDistance*0.77) 
 					  || (stage == 6 && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) < 8 && sbd.getValueForKey_MapOfDistances(INFRARED_REAR_CENTER) > 0))){
 		
                         vc.setSpeed(0);
@@ -158,7 +158,7 @@ namespace automotive {
                      } else if (stage == 6) {
 					 
 					 vc.setSpeed(-1.5);
-					 vc.setSteeringWheelAngle(-x);
+					 vc.setSteeringWheelAngle(-angle);
 					 
 					 }
 					 
