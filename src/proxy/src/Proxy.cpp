@@ -46,10 +46,6 @@
 
 #include "OpenCVCamera.h"
 
-#ifdef HAVE_UEYE
-    #include "uEyeCamera.h"
-#endif
-
 #include "Proxy.h"
 
 namespace automotive {
@@ -109,11 +105,6 @@ namespace automotive {
 
             if (TYPE.compare("opencv") == 0) {
                 m_camera = unique_ptr<Camera>(new OpenCVCamera(NAME, ID, WIDTH, HEIGHT, BPP));
-            }
-            if (TYPE.compare("ueye") == 0) {
-#ifdef HAVE_UEYE
-                m_camera = unique_ptr<Camera>(new uEyeCamera(NAME, ID, WIDTH, HEIGHT, BPP));
-#endif
             }
 
             if (m_camera.get() == NULL) {
@@ -243,6 +234,7 @@ namespace automotive {
 
         // Send netstring to Arduino
         void Proxy::sendOverSerial(const int16_t speed, const int16_t angle){
+          // Construct the string "speed=1500;angle=90;"
           string toSend = "";
           toSend += "speed=" + to_string(vcSpeed) + ";angle=" + to_string(vcAngle) + ";";
           string encoded = Netstrings::encodeNetstring(toSend);
