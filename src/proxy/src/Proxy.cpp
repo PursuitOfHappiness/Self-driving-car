@@ -29,12 +29,12 @@
  # endif
  #endif
 
-#include <ctype.h>
-#include <cstring>
-#include <cmath>
-#include <iostream>
-#include <cstdio>
-#include <unistd.h> // Linux specific
+//#include <ctype.h>
+//#include <cstring> // size_t
+//#include <cmath>
+#include <iostream> // cout
+//#include <cstdio>
+//#include <unistd.h> // Linux specific
 #include <string>
 #include <automotivedata/GeneratedHeaders_AutomotiveData.h>
 
