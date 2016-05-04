@@ -29,6 +29,7 @@
 
 #include "automotivedata/GeneratedHeaders_AutomotiveData.h"
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
+#include "imageProcessLib.h"
 
 namespace automotive {
     namespace miniature {
@@ -84,7 +85,8 @@ namespace automotive {
             private:
 	            bool m_hasAttachedToSharedImageMemory;
 	            std::shared_ptr<odcore::wrapper::SharedMemory> m_sharedImageMemory;
-	            IplImage *m_image;
+	          //  IplImage *m_image;
+            cv::Mat m_image;
                 bool m_debug;
                 CvFont m_font;
 
@@ -97,6 +99,7 @@ namespace automotive {
 				int distanceOld;
 				bool no_lines;
 				bool overtake;
+      //  imageProcess m_proc; // TO-DO fix the undefined reference problem
 
                 automotive::VehicleControl m_vehicleControl;
 
