@@ -32,7 +32,7 @@
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
 
 #include "LaneFollower.h"
-
+#include "imageProcessLib.h"
 namespace automotive {
     namespace miniature {
 
@@ -44,6 +44,7 @@ namespace automotive {
         using namespace automotive::miniature;
 
         LaneFollower::LaneFollower(const int32_t &argc, char **argv) : TimeTriggeredConferenceClientModule(argc, argv, "lanefollower"),
+
             m_hasAttachedToSharedImageMemory(false),
             m_sharedImageMemory(),
           //  m_image(NULL),
@@ -60,7 +61,7 @@ namespace automotive {
 
             no_lines(false),
             overtake(false),
-            // m_proc(), //TO-DO fix the undefined reference problem
+            m_proc(),
             m_vehicleControl() {}
 
         LaneFollower::~LaneFollower() {}
@@ -70,6 +71,8 @@ namespace automotive {
                 // Create an OpenCV-window.
                 cvNamedWindow("WindowShowImage", CV_WINDOW_AUTOSIZE);
                 cvMoveWindow("WindowShowImage", 300, 100);
+
+
             }
         }
 
@@ -132,7 +135,8 @@ namespace automotive {
             int prev_left_x = -1;
             int prev_right_x = -1;
             no_lines = false;
-
+            m_proc.setThreshold(180, true); //Set threshold for makeBinary() to 180
+            m_proc.processImage(m_image); //Process the m_image
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
 
 
