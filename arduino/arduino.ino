@@ -19,7 +19,7 @@ const int escPin = 6;     // pin to which the ESC is attached
 //Change these to Constants instead as it's preferred on the arduino
 #define FC_08_ADDRESS (0xE6 >> 1) // Front Center Sonar
 #define FR_08_ADDRESS (0xE0 >> 1) // Front Right Sonar
-#define GAIN_REGISTER 0x05        // Analog Gain
+#define GAIN_REGISTER 0x0B        // Analog Gain
 #define LOCATION_REGISTER 0x18    // 1 meter
 
 char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
@@ -35,6 +35,7 @@ const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is a
 Servo motor, steering;
 volatile int wheelPulses, rcControllerFlag;
 const int fifoSize = 3;             // Decides the size of the following arrays
+int speedReference, referenceCount;
 int frCSArray[fifoSize] = {0};      // Front Center US
 int frRSArray[fifoSize] = {0};      // Front Right US
 int iRFRArray[fifoSize] = {0};      // Right Front IR
@@ -55,6 +56,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(2), wheelPulse, RISING); // interupts from wheel encoder
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   wheelPulses = 0;
+  speedReference = 1500;
+  referenceCount = 0;
   Wire.begin();
   // Setting up the sonars and limiting the range to 1 meter.
 
@@ -69,6 +72,7 @@ void setup() {
   Wire.write(GAIN_REGISTER);
   Wire.write(LOCATION_REGISTER);
   Wire.endTransmission();
+
 }
 
 void loop() {
@@ -91,7 +95,31 @@ void loop() {
   } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
     dataFromSerial(decodeNetstring(inputBuffer), data); // decode netstring, and extract data
-    setSpeed(data[0]);
+
+    if (data[0] == 1500){
+      setSpeed(1500);
+      speedReference = 1500;
+    } else if (data[0] != speedReference && data[0] > 1500){
+      speedReference = data[0];
+      setSpeed(1700); // set the speed high to kickstart the car
+      Serial.println("Set speed 1700");
+      int wheelPulsesTemp = wheelPulses;
+      while(wheelPulses < wheelPulsesTemp + 4){
+        // do nothing
+      }
+      setSpeed(1590);// lower the speed again
+      Serial.println("Set speed 1600");
+    } else if (data[0] != speedReference && data[0] < 1500) {
+      speedReference = data[0];
+      setSpeed(1000); // set the speed high to kickstart the car
+      Serial.println("Set speed 1000");
+      int wheelPulsesTemp = wheelPulses;
+      while(wheelPulses < wheelPulsesTemp + 4){
+        // do nothing
+      }
+      setSpeed(1100); // lower the speed again
+      Serial.println("Set speed 1100");
+    }
     setSteering(data[1]);
     inputBuffer = "";
     newCommand = false;
@@ -284,7 +312,7 @@ void dataFromSerial(String values, int *pdata){
  * Function for speed. Checks that the value is inside the allowed range.
  */
 void setSpeed(int speed){
-  if (speed >= 1070 && speed <= 1620){
+  if (speed >= 1000 && speed <= 1700){
     motor.writeMicroseconds(speed);
   }
 }
