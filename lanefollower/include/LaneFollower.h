@@ -99,7 +99,7 @@ namespace automotive {
 				int distanceOld;
 				bool no_lines;
 				bool overtake;
-      //  imageProcess m_proc; // TO-DO fix the undefined reference problem
+        imageProcess m_proc;
 
                 automotive::VehicleControl m_vehicleControl;
 
