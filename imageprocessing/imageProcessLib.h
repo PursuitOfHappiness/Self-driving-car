@@ -39,7 +39,7 @@ private:
 	bool usesFilterWhiteAreas; // true = whiteAreaFilter() will run
 	bool usesHoughLinesPLR; //// true = HoughLinesPLR() will run
 
-							// Original Frame width and height, used when image is resized and then reset to original size
+	// Original Frame width and height, used when image is resized and then reset to original size
 	short origWidth;
 	short origHeight;
 
@@ -50,7 +50,7 @@ private:
 	//makeBinary()
 	uchar threshold; // thres = value for the threshold1 (0-255), threshold2 already set to 255
 
-					 // Threshold() variables
+	// Threshold() variables
 	uchar light;
 
 	// fixLight() variables
@@ -61,17 +61,17 @@ private:
 	short horizontalPos; //horizontalPos = how fram from top and bottom you want the roi int
 	short skewed; //skewed = how many pixels you want the top corners to be skewed,ie closer together than the bottom ones int (0=default for rectangle)
 
-				  // filterWhiteAreas() variables
+	// filterWhiteAreas() variables
 	double whiteAreaMaxLimit; // whiteAreaMaxLimit = double to set the threshold for how big areas should be detected and "erased"
 	double whiteAreaMin;  // whiteAreaMin = double to set the minimum area threshold for areas to be detected
 	double whiteLengthLimit; // whiteLengthLimit = double to set the archLength threshold for length of areas to be detected, areas longer than this value will be ignored
 
-							 //  HoughLinesPLR() variables
+	//  HoughLinesPLR() variables
 	double houghThreshold; // houghThreshold = double to set the threshold for houghtransform probabilistic
 	double minLineLength; // minLineLength = double to set the shortest line lengths to be used
 	double maxLineGap; // maxLineGap = double to set the maximum line gap to be used before considering a line segments to be separate
 
-					   //  The pointer to the image which will be processed
+	//  The pointer to the image which will be processed
 	cv::Mat* frame;
 
 	//---------//
@@ -87,13 +87,13 @@ public:
 	void processImage(cv::Mat &image);
 	void processImage(IplImage &image);
 
-	void setContrast(double alpha, double beta, bool isActive);
-	void setThreshold(uchar thes, bool isActive);
+	void setContrast(double alphaVal, double betaVal, bool isActive);
+	void setThreshold(uchar thesVal, bool isActive);
 	void setCustomThreshold(uchar light, bool isActive);
-	void setLightRange(uchar range, bool isActive);
-	void setRoi(short verticalPos, short horizontalPos, short skewed, bool isActive);
-	void setWhiteFilter(double areaMaxLimit, double areaMin, double areaLength, bool isActive);
-	void setHoughLines(uchar threshold, double maxLineGap, double minLineLength, bool isActive);
+	void setLightRange(uchar rangeVal, bool isActive);
+	void setRoi(short verticalPosVal, short horizontalPosVal, short skewedVal, bool isActive);
+	void setWhiteFilter(double areaMaxLimitVal, double areaMinVal, double areaLengthVal, bool isActive);
+	void setHoughLines(uchar thresholdVal, double maxLineGapVal, double minLineLengthVal, bool isActive);
 
 	void setContrastBool(bool active);
 	void setMakeBinaryBool(bool active);
