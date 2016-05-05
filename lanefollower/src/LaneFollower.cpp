@@ -135,8 +135,7 @@ namespace automotive {
             int prev_left_x = -1;
             int prev_right_x = -1;
             no_lines = false;
-            m_proc.setThreshold(180, true); //Set threshold for makeBinary() to 180
-            m_proc.processImage(m_image); //Process the m_image
+
             const int32_t CONTROL_SCANLINE = 462; // calibrated length to right: 280px
 
 
@@ -145,18 +144,17 @@ namespace automotive {
             for(int32_t y = m_image.rows - 8; y > m_image.rows * .6; y -= 10) {
                 // Search from middle to the left:
                 //CvScalar pixelLeft;
-                //Vec3b pixelLeft;
-                CvPoint left;
+                cv::Scalar pixelLeft;
+                //CvPoint left;
+                cv::Point left;
                 left.y = y;
                 left.x = prev_left_x;
               //for(int x = m_image->width/2; x > 0; x--) {
                 for(int x = m_image.cols/2; x > 0; x--) {
-                    // pixelLeft = cvGet2D(m_image, y, x);
+                 // pixelLeft = cvGet2D(m_image, y, x);
+                    pixelLeft = m_image.at<unsigned char>(cv::Point(y, x));
 
-                    //pixelLeft = m_image.at<Vec3b>(Point(y,x));
-                    //if (pixelLeft.val[0] >= 200) {
-                      if (m_image.at<cv::Vec3b>(y,x)[0] >= 200 && m_image.at<cv::Vec3b>(y,x)[1] >= 200 && m_image.at<cv::Vec3b>(y,x)[2] >= 250){   // (y,x)
-                      //if (m_image.at<Vec3b>(x,y)[0] >= 200 && m_image.at<Vec3b>(x,y)[1] >= 200 && m_image.at<Vec3b>(x,y)[2] >= 250){ // (x,y)
+                    if (pixelLeft.val[0] >= 200) {
                         left.x = x;
                         prev_left_x = x;
                         break;
@@ -165,16 +163,16 @@ namespace automotive {
 
                 // Search from middle to the right:
                 //CvScalar pixelRight;
-                CvPoint right;
+                cv::Scalar pixelRight;
+                cv::Point right;
                 right.y = y;
                 right.x = prev_right_x;
                 //for(int x = m_image->width/2; x < m_image->width; x++) {
                 for(int x = m_image.cols/2; x < m_image.cols; x++) {
                     //pixelRight = cvGet2D(m_image, y, x);
-                  //  pixelLeft = m_image.at<uchar>(y,x);
-                    //if (pixelRight.val[0] >= 200) {
-                      if (m_image.at<cv::Vec3b>(y,x)[0] >= 200 && m_image.at<cv::Vec3b>(y,x)[1] >= 200 && m_image.at<cv::Vec3b>(y,x)[2] >= 250){   // (y,x)
-                          // if (m_image.at<Vec3b>(x,y)[0] >= 200 && m_image.at<Vec3b>(x,y)[1] >= 200 && m_image.at<Vec3b>(x,y)[2] >= 250){  //(x,y)
+                    pixelRight = m_image.at<unsigned char>(cv::Point(y, x));
+
+                    if (pixelRight.val[0] >= 200) {
                         right.x = x;
                         prev_right_x = x;
                         break;
@@ -183,24 +181,25 @@ namespace automotive {
 
                 if (m_debug) {
                     if (left.x > 0) {
-                        CvScalar green = CV_RGB(0, 255, 0);
+                        cv::Scalar green = CV_RGB(0, 255, 0);
                         //cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
-                        cvLine(&m_image, cvPoint(m_image.cols/2, y), left, green, 1, 8);
+                        cv::line(&m_image, cv::Point(m_image.cols/2, y), left, green, 1, 8);
                         stringstream sstr;
                         //sstr << (m_image->width/2 - left.x);
                         sstr << (m_image.cols/2 - left.x);
                         //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
-                        cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 - 100, y - 2), &m_font, green);
+                        //cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 - 100, y - 2), &m_font, green);
+                        cv::putText(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
                     }
                     if (right.x > 0) {
                         CvScalar red = CV_RGB(255, 0, 0);
                         //cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
-                        cvLine(&m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
+                        cv::line(&m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
                         stringstream sstr;
                         //sstr << (right.x - m_image->width/2);
                         sstr << (right.x - m_image.cols/2);
                         //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
-                        cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
+                        cv::putText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
                     }
                 }
 
@@ -248,6 +247,9 @@ namespace automotive {
         }
 
         void LaneFollower::processImage() {
+          m_proc.setThreshold(180, true); //Set threshold for makeBinary() to 180
+          m_proc.processImage(m_image); //Process the m_image
+          cv::cvtColor(m_image, m_image, CV_GRAY2RGB); //make the image 3 channel to paint the lines
             double e = findDeviation();
             cerr << "DEVIATION RECEIVED = " << e << endl;
 
