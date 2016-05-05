@@ -8,6 +8,10 @@ namespace automotive {
     namespace miniature {
 
         using namespace std;
+        
+        Netstrings::Netstrings(){
+        	// constructor
+        }
 
         string Netstrings::decodeNetstring(string toDecode){
           if (toDecode.length() < 3){ // A netstring can't be shorter than 3 characters
@@ -58,6 +62,6 @@ namespace automotive {
           }
           return to_string(toEncode.length()) + ":" + toEncode + ",";
         }
-
-    }
+	}
 }
+

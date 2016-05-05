@@ -3,24 +3,26 @@
  * Implementation of netstrings for the autonomous car project.
  */
 
-#ifndef NETSTRINGS_H_
-#define NETSTRINGS_H_
+#ifndef NETSTRINGS_TPOH_H_
+#define NETSTRINGS_TPOH_H_
 
 #include <cstdio>
 #include <string>
+#include <stdexcept>
 
 namespace automotive {
     namespace miniature {
+
+    using namespace std;
+    
       class Netstrings {
 
-        using namespace std;
-
         public:
-          string Netstrings::decodeNetstring(string);
-          string Netstrings::encodeNetstring(string);
+        	Netstrings();
+        	string decodeNetstring(string);
+        	string encodeNetstring(string);
 
-      }
-    }
+      };
+	}
 }
-
 #endif

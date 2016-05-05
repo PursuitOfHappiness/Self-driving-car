@@ -36,7 +36,6 @@
 #include "opendavinci/odcore/base/KeyValueConfiguration.h"
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odcore/data/TimeStamp.h"
-#include "Netstrings.h"
 
 #include "OpenCVCamera.h"
 
@@ -55,7 +54,8 @@ namespace automotive {
             TimeTriggeredConferenceClientModule(argc, argv, "proxy"),
             m_recorder(),
             m_camera(),
-            my_serial()
+            my_serial(),
+            netstrings()
         {}
 
         Proxy::~Proxy() {
@@ -212,7 +212,7 @@ namespace automotive {
   		              }
   		            }
   		            if (newCommand){
-  		              string decoded = Netstrings::decodeNetstring(result);
+  		              string decoded = netstrings.decodeNetstring(result);
   		              sbdDistribute(decoded); // Distribute SensorBoardData
                     vdDistribute(decoded); // Distribute VehicleData
   		              newCommand = false;
@@ -230,8 +230,8 @@ namespace automotive {
         void Proxy::sendOverSerial(const int16_t speed, const int16_t angle){
           // Construct the string "speed=1500;angle=90;"
           string toSend = "";
-          toSend += "speed=" + to_string(vcSpeed) + ";angle=" + to_string(vcAngle) + ";";
-          string encoded = Netstrings::encodeNetstring(toSend);
+          toSend += "speed=" + to_string(speed) + ";angle=" + to_string(angle) + ";";
+          string encoded = netstrings.encodeNetstring(toSend);
           my_serial->write(encoded);
           cout << "sent: " << encoded << endl;
         }

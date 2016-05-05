@@ -27,6 +27,7 @@
 #include "opendavinci/odcore/data/Container.h"
 #include "opendavinci/odtools/recorder/Recorder.h"
 #include "serial/serial.h"
+#include "Netstrings.h"
 #include "Camera.h"
 
 namespace automotive {
@@ -83,6 +84,7 @@ namespace automotive {
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
                 unique_ptr<Camera> m_camera;
                 unique_ptr<serial::Serial> my_serial;
+                Netstrings netstrings;
         };
 
     }
