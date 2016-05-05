@@ -43,6 +43,8 @@ int iRRRArray[fifoSize] = {0};      // Right Rear IR
 int iRRCArray[fifoSize] = {0};      // Rear Right Center IR
 boolean newCommand = false;
 String inputBuffer = "";
+String encodedToSend = "";
+String decodedFromOdroid = "";
 
 void setup() {
   //SERIAL CONNECTION
@@ -76,8 +78,11 @@ void setup() {
 }
 
 void loop() {
-  Serial.println(encodeNetstring(getUSData() + getIRData() + distTraveled())); // encode as a netstring and send over serial
-  Serial.flush(); // wait for sending to be complete and clear outgoing buffer
+  if (encodeNetstring(getUSData() + getIRData() + distTraveled()) == 1){
+    Serial.println(encodedToSend); // encode as a netstring and send over serial
+    encodedToSend = "";
+  }
+  //Serial.flush(); // wait for sending to be complete and clear outgoing buffer
   // Create a buffer with all the data that comes over the serial connection
   while (Serial.available() > 0){
     char c = Serial.read(); // Reads a value and removes it from the serial buffer
@@ -94,35 +99,38 @@ void loop() {
     }
   } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
-    dataFromSerial(decodeNetstring(inputBuffer), data); // decode netstring, and extract data
-
-    if (data[0] == 1500){
-      setSpeed(1500);
-      speedReference = 1500;
-    } else if (data[0] != speedReference && data[0] > 1500){
-      speedReference = data[0];
-      setSpeed(1700); // set the speed high to kickstart the car
-      Serial.println("Set speed 1700");
-      int wheelPulsesTemp = wheelPulses;
-      while(wheelPulses < wheelPulsesTemp + 4){
-        // do nothing
+    if (decodeNetstring(inputBuffer) == 1){
+      Serial.println("decode netstring correct");
+      dataFromSerial(decodedFromOdroid, data); // decode netstring, and extract data
+      if (data[0] == 1500){
+        setSpeed(1500);
+        speedReference = 1500;
+      } else if (data[0] != speedReference && data[0] > 1500){
+        speedReference = data[0];
+        setSpeed(1700); // set the speed high to kickstart the car
+        Serial.println("Set speed 1700");
+        int wheelPulsesTemp = wheelPulses;
+        while(wheelPulses < wheelPulsesTemp + 4){
+          // do nothing
+        }
+        setSpeed(1590);// lower the speed again
+        Serial.println("Set speed 1600");
+      } else if (data[0] != speedReference && data[0] < 1500) {
+        speedReference = data[0];
+        setSpeed(1000); // set the speed high to kickstart the car
+        Serial.println("Set speed 1000");
+        int wheelPulsesTemp = wheelPulses;
+        while(wheelPulses < wheelPulsesTemp + 4){
+          // do nothing
+        }
+        setSpeed(1100); // lower the speed again
+        Serial.println("Set speed 1100");
       }
-      setSpeed(1590);// lower the speed again
-      Serial.println("Set speed 1600");
-    } else if (data[0] != speedReference && data[0] < 1500) {
-      speedReference = data[0];
-      setSpeed(1000); // set the speed high to kickstart the car
-      Serial.println("Set speed 1000");
-      int wheelPulsesTemp = wheelPulses;
-      while(wheelPulses < wheelPulsesTemp + 4){
-        // do nothing
-      }
-      setSpeed(1100); // lower the speed again
-      Serial.println("Set speed 1100");
+      setSteering(data[1]);
     }
-    setSteering(data[1]);
     inputBuffer = "";
     newCommand = false;
+    decodedFromOdroid = "";
   }
 }
 /*
@@ -251,43 +259,44 @@ int fifo(int array[], int newValue) {
  * Encoding netsrings. Takes a string and returns it as
  * '5:hello,'
  */
-String encodeNetstring(String toEncode){
-  String str = "";
+int encodeNetstring(String toEncode){
   if (toEncode.length() < 1){
-    return "Netstrings: Nothing to encode";
+    return -1;
   }
-  return String(toEncode.length()) + ":" + toEncode + ",";
+  encodedToSend = String(toEncode.length()) + ":" + toEncode + ",";
+  return 1;
 }
 /*
  * Decoding netsrings. Takes a string like this '5:hello'
  * and returns it like this 'hello'
  * Also checks that the netstring is of the correct format and size.
  */
-String decodeNetstring(String toDecode){
+int decodeNetstring(String toDecode){
   if (toDecode.length() < 3){ // A netstring can't be shorter than 3 characters
-    return "Netstrings: Wrong format";
+    return -1;
   }
 
   // Check that ':' and ',' exists at the proper places
   int semicolonIndex = toDecode.indexOf(':');
   int commaIndex = toDecode.lastIndexOf(',');
   if (semicolonIndex < 1 || commaIndex != toDecode.length() - 1) { // the first character has to be a number
-    return "Netstrings: No semicolon found, or no comma found";
+    return -1;
   }
 
   // Parse control number
   String number = toDecode.substring(0, semicolonIndex);
   int controlNumber = number.toInt();
   if (controlNumber < 1){ // the netstring has to contain atleast 1 character to be parsed
-    return "Netstrings: Control Number is to low";
+    return -1;
   }
 
   // Check that the length of the string is correct
   toDecode = toDecode.substring(semicolonIndex + 1, commaIndex); // the data that we want to parse
   if (controlNumber != toDecode.length()){
-    return "Netstrings: Wrong length of data";
+    return -1;
   }
-  return toDecode;
+  decodedFromOdroid = toDecode;
+  return 1;
 }
 /*
  * Decodes the string of data from Odroid. Takes a string and a pointer to an
