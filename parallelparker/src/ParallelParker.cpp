@@ -60,9 +60,16 @@ namespace automotive {
 		const double INFRARED_FRONT_RIGHT = 0;    
 		const double INFRARED_REAR_CENTER = 2;
 		
-		double distance, absPathStart, absPathEnd, firstStageDistance, secondStageDistance = 0;
+		double distance = 0;    
+                double absPathStart = 0;
+                double absPathEnd = 0;
+                double firstStageDistance = 0;
+                double secondStageDistance = 0;
 		
-		int stage, stageMoving, stageMeasuring, angle = 0;
+		int stage = 0; 
+                int stageMoving = 0;
+                int stageMeasuring = 0;
+                int angle = 0;
 
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
