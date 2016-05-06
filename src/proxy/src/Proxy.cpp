@@ -246,10 +246,13 @@ namespace automotive {
           VehicleData vd;
 
           double cmTrav;
+          bool converted = false;
+
           size_t index1 = decodedData.find("WP");
 
           try {
             cmTrav = stoi(decodedData.substr(index1 + 2));
+            converted = true;
           }
           catch (std::invalid_argument&){
             cerr << "STOI: Invalid Arguments." << endl;
@@ -257,8 +260,10 @@ namespace automotive {
           catch (std::out_of_range&){
             cerr << "STOI: Out of range." << endl;
           }
-
-          vd.setAbsTraveledPath(cmTrav);
+          if (converted){
+            vd.setAbsTraveledPath(cmTrav);
+            converted = false;
+          }
 
           cout << "cmTrav: " << vd.getAbsTraveledPath() << endl;
 
