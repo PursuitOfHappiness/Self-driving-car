@@ -128,6 +128,8 @@ namespace automotive {
             uint32_t sendCounter = 0; // Make sure that we don't send every loop
             uint32_t delayCounter = 0;  // Delay the send over serial on startup
             uint32_t portNumber = 0;
+            //int16_t oldSpeed = 1500;
+            //int16_t oldAngle = 90;
             size_t readSize = 1;  // Size of data to read from the serial port
             bool newCommand = false;
             string port = "/dev/ttyACM";
@@ -184,24 +186,27 @@ namespace automotive {
   		            } else {
   		              speedTemp = 1500;
   		            }
-  		            vcSpeed = speedTemp;
+  		            //vcSpeed = speedTemp;
 
   		            double vcAngle = vc.getSteeringWheelAngle();
                   // Convert steering angle from radiants to degrees
   		            int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
                   // Send the exact value we want to set steering at
   		            if (vcDegree > 25){
-  		              vcAngle = 90 + 40;
+  		              vcDegree = 90 + 40;
   		            } else if (vcDegree < -25){
-  		              vcAngle = 90 - 30;
+  		              vcDegree = 90 - 30;
   		            } else {
-  		              vcAngle = 90 + vcDegree;
+  		              vcDegree = 90 + vcDegree;
   		            }
 
   		            sendCounter++;  // Dont send to arduino every loop
-  		            if(my_serial->isOpen() && sendCounter == 5){
-                    sendOverSerial(vcSpeed, vcAngle);
+  		            //if(my_serial->isOpen() && sendCounter > 5 && (oldSpeed != speedTemp || oldAngle != vcDegree)){
+  		            if(my_serial->isOpen() && sendCounter > 5){
+                    sendOverSerial(speedTemp, vcDegree);
   		              sendCounter = 0;
+  		             //oldSpeed = speedTemp;
+  		             //oldAngle = vcDegree;
   		            }
                   // Read to a buffer for incoming data
   		            while (my_serial->available() > 0){
@@ -270,6 +275,7 @@ namespace automotive {
           int irRearCenter;
           int usFrontCenter;
           int usFrontRight;
+          bool converted = false;
 
           size_t index1 = decodedData.find("IRFR");
           size_t index2 = decodedData.find("IRRR");
@@ -283,6 +289,7 @@ namespace automotive {
             irRearCenter = stoi(decodedData.substr(index3 + 4));
             usFrontCenter = stoi(decodedData.substr(index4 + 3));
             usFrontRight = stoi(decodedData.substr(index5 + 3));
+            converted = true;
           }
           catch (std::invalid_argument&){
             cerr << "STOI: Invalid Arguments." << endl;
@@ -290,12 +297,15 @@ namespace automotive {
           catch (std::out_of_range&){
             cerr << "STOI: Out of range." << endl;
           }
+          if (converted){
+            sbd.putTo_MapOfDistances(0, irFrontRight);
+            sbd.putTo_MapOfDistances(1, irRearRight);
+            sbd.putTo_MapOfDistances(2, irRearCenter);
+            sbd.putTo_MapOfDistances(3, usFrontCenter);
+            sbd.putTo_MapOfDistances(4, usFrontRight);
+            converted = false;
+          }
 
-          sbd.putTo_MapOfDistances(0, irFrontRight);
-          sbd.putTo_MapOfDistances(1, irRearRight);
-          sbd.putTo_MapOfDistances(2, irRearCenter);
-          sbd.putTo_MapOfDistances(3, usFrontCenter);
-          sbd.putTo_MapOfDistances(4, usFrontRight);
 
           cout << "irFrontRight: " << sbd.getValueForKey_MapOfDistances(0) << endl;
           cout << "irRearRight: " << sbd.getValueForKey_MapOfDistances(1) << endl;
