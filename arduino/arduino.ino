@@ -22,8 +22,6 @@ const int escPin = 6;     // pin to which the ESC is attached
 #define GAIN_REGISTER 0x0B        // Analog Gain
 #define LOCATION_REGISTER 0x18    // 1 meter
 
-char unit = 'c'; // 'i' for inches, 'c' for centimeters, 'm' for micro-seconds
-
 //INFRAREDS  -- Analog
 const int irFrontRightPin = 0;     // pin to which the front right infrared sensor is attached
 const int irRearRightPin = 1;      // pin to which the rear right infrared sensor is attached
@@ -105,7 +103,7 @@ void loop() {
       if (data[0] == 1500){
         setSpeed(1500);
         speedReference = 1500;
-      } else if (data[0] != speedReference && data[0] > 1500){
+      } else if (data[0] != speedReference && data[0] > 1500){ // we get a new speed moving forward
         speedReference = data[0];
         setSpeed(1700); // set the speed high to kickstart the car
         Serial.println("Set speed 1700");
@@ -115,7 +113,7 @@ void loop() {
         }
         setSpeed(1590);// lower the speed again
         Serial.println("Set speed 1600");
-      } else if (data[0] != speedReference && data[0] < 1500) {
+      } else if (data[0] != speedReference && data[0] < 1500) { // we get a new speed moving backwards
         speedReference = data[0];
         setSpeed(1000); // set the speed high to kickstart the car
         Serial.println("Set speed 1000");
@@ -217,11 +215,12 @@ int usCalc(int sensorAddress) {
   Wire.endTransmission();
 
   Wire.requestFrom(sensorAddress, 2);           // Request 2 bytes from SRF module
-  while(Wire.available() < 2);                 // Wait for data to arrive
+  if (Wire.available() < 2){      // If there is not enough data return -1
+    return -1;
+  }
   byte highByte = Wire.read();                 // Get high byte
   byte lowByte = Wire.read();                  // Get low byte
   range = (highByte << 8) + lowByte;           // Put them together
-
   if (range >= 5 && range <= 90) {
     return range;
   }
@@ -247,13 +246,23 @@ int rangingNotDone(int sensorAddress){
  */
 int fifo(int array[], int newValue) {
   int sum = 0;
-  for (int i = 0; i < fifoSize - 1; i++) {
+  int divideby = 0;
+  for (int i = 0; i < fifoSize - 1; i++) { // mvoe the values around in the queue
     array[i] = array[i + 1];
-    sum += array[i + 1];
+    if (array[i + 1] > 0){ // smoothing is only done with real ranges
+      sum += array[i + 1];
+      divideby++;
+    }
   }
   array[fifoSize - 1] = newValue;
-  sum += newValue;
-  return sum / fifoSize;
+  if (newValue > 0){
+    sum += newValue;
+    divideby++;
+  }
+  if (divideby < 3){ // less than 3 values is treated as ghost values
+    return -1;
+  }
+  return sum / divideby;
 }
 /*
  * Encoding netsrings. Takes a string and returns it as
