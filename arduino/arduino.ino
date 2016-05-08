@@ -3,6 +3,7 @@
 // --------- //
 #include <Servo.h>      // Steering and motor
 #include <Wire.h>       // Sonars
+#include <Adafruit_NeoPixel.h> // Ledstrips
 
 // --------- //
 // Constants //
@@ -27,10 +28,14 @@ const int irFrontRightPin = 0;     // pin to which the front right infrared sens
 const int irRearRightPin = 1;      // pin to which the rear right infrared sensor is attached
 const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is attached
 
+// Ledstrips
+const int ledPin = 2;
+
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
 Servo motor, steering;
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, PIN, NEO_GRB + NEO_KHZ800);
 volatile int wheelPulses, rcControllerFlag;
 const int fifoSize = 3;             // Decides the size of the following arrays
 int speedReference, referenceCount;
@@ -58,8 +63,12 @@ void setup() {
   wheelPulses = 0;
   speedReference = 1500;
   referenceCount = 0;
-  Wire.begin();
+
+  strip.begin();
+  strip.show(); // Initialize all pixels to 'off'
+
   // Setting up the sonars and limiting the range to 1 meter.
+  Wire.begin();
 
   Wire.beginTransmission(FC_08_ADDRESS);
   Wire.write(0x00);
@@ -341,4 +350,57 @@ void setSteering(int steer){
   if (steer >= 60 && steer <= 130){
     steering.write(steer);
   }
+}
+/*
+ * Sets pixels to imitate front and backlights while driving
+ */
+void ledsDriving(){
+  for (int i = 0; i < 2; i++) {
+    strip.setPixelColor(i, strip.Color(20, 20, 100)); // blue/white
+    strip.setPixelColor(i + 6, strip.Color(20, 20, 100)); // blue/white
+    strip.setPixelColor((i + 8), strip.Color(100, 0, 0)); // red
+    strip.setPixelColor((i + 8) + 6, strip.Color(100, 0, 0)); // red
+  }
+  strip.show();
+}
+/*
+ * Sets pixels to imitate lights when backing
+ */
+void ledsBacking(){
+  for (int i = 0; i < 2; i++) {
+    strip.setPixelColor(i, strip.Color(20, 20, 100)); // blue/white
+    strip.setPixelColor(i + 6, strip.Color(20, 20, 100)); // blue/white
+    strip.setPixelColor((i + 8), strip.Color(100, 0, 0)); // red
+    strip.setPixelColor((i + 8) + 6, strip.Color(100, 0, 0)); // red
+  }
+  strip.setPixelColor(2, strip.Color(100, 100, 100)); // white
+  strip.setPixelColor(5, strip.Color(100, 100, 100)); // white
+  strip.setPixelColor(10, strip.Color(100, 100, 100)); // white
+  strip.setPixelColor(13, strip.Color(100, 100, 100)); // white
+
+  strip.show();
+}
+/*
+ * Sets pixels to imitate light when turning left
+ */
+void ledsLeftTurn(){
+  for (int i = 0; i < 2; i++) {
+    strip.setPixelColor(i, strip.Color(20, 20, 100)); // blue/white
+    strip.setPixelColor((i + 14), strip.Color(100, 0, 0)); // red
+    strip.setPixelColor((i + 6), strip.Color(100, 100, 0)); // yellow
+    strip.setPixelColor((i + 8), strip.Color(100, 100, 0)); // yellow
+  }
+  strip.show();
+}
+/*
+ * Sets pixels to imitate light when turning right
+ */
+void ledsRightTurn(){
+  for (int i = 0; i < 2; i++) {
+    strip.setPixelColor(i, strip.Color(100, 100, 0)); // yellow
+    strip.setPixelColor((i + 14), strip.Color(100, 100, 0)); // yellow
+    strip.setPixelColor((i + 6), strip.Color(20, 20, 100)); // white/blue
+    strip.setPixelColor((i + 8), strip.Color(100, 0, 0)); // red
+  }
+  strip.show();
 }
