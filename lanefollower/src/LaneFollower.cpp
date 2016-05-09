@@ -123,7 +123,7 @@ namespace automotive {
 
                     // Mirror the image.
                     //cvFlip(&m_image, 0, -1);
-
+			cv::flip(m_image,m_image,1); //sim flip 
                     retVal = true;
                 }
             }
