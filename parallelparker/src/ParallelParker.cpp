@@ -165,7 +165,7 @@ namespace automotive {
                      } else if (stage == 6) {
 					 
 					 vc.setSpeed(-1.5);
-					 vc.setSteeringWheelAngle(-angle);
+					 vc.setSteeringWheelAngle(0-angle);
 					 
 					 }
 					 
