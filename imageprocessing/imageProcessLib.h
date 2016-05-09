@@ -48,7 +48,7 @@ private:
 	double beta;
 
 	//makeBinary()
-	uchar threshold; // thres = value for the threshold1 (0-255), threshold2 already set to 255
+	double threshold; // thres = value for the threshold1 (0-255), threshold2 already set to 255
 
 	// Threshold() variables
 	uchar light;
@@ -88,7 +88,7 @@ public:
 	void processImage(IplImage &image);
 
 	void setContrast(double alphaVal, double betaVal, bool isActive);
-	void setThreshold(uchar thesVal, bool isActive);
+	void setThreshold(double thesVal, bool isActive);
 	void setCustomThreshold(uchar light, bool isActive);
 	void setLightRange(uchar rangeVal, bool isActive);
 	void setRoi(short verticalPosVal, short horizontalPosVal, short skewedVal, bool isActive);
