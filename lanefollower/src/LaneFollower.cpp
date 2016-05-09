@@ -144,7 +144,8 @@ namespace automotive {
             for(int32_t y = m_image.rows - 8; y > m_image.rows * .6; y -= 10) {
                 // Search from middle to the left:
                 //CvScalar pixelLeft;
-                cv::Scalar pixelLeft;
+                //cv::Scalar pixelLeft;
+                cv::Vec3b pixelLeft;
                 //CvPoint left;
                 cv::Point left;
                 left.y = y;
@@ -152,9 +153,13 @@ namespace automotive {
               //for(int x = m_image->width/2; x > 0; x--) {
                 for(int x = m_image.cols/2; x > 0; x--) {
                  // pixelLeft = cvGet2D(m_image, y, x);
-                    pixelLeft = m_image.at<unsigned char>(cv::Point(y, x));
-
-                    if (pixelLeft.val[0] >= 200) {
+                    pixelLeft = m_image.at<cv::Vec3b>(y, x);
+                    int B = pixelLeft.val[0];
+                    int G = pixelLeft.val[1];
+                    int R = pixelLeft.val[2];
+                    //if (pixelLeft.val[0] >= 200) {
+                    if(B >=220 && G >= 220 && R >= 220){
+                      std::cout << "Left Higher than 220" << std::endl;
                         left.x = x;
                         prev_left_x = x;
                         break;
@@ -163,16 +168,23 @@ namespace automotive {
 
                 // Search from middle to the right:
                 //CvScalar pixelRight;
-                cv::Scalar pixelRight;
+                //cv::Scalar pixelRight;
+                cv::Vec3b pixelRight;
                 cv::Point right;
                 right.y = y;
                 right.x = prev_right_x;
                 //for(int x = m_image->width/2; x < m_image->width; x++) {
                 for(int x = m_image.cols/2; x < m_image.cols; x++) {
                     //pixelRight = cvGet2D(m_image, y, x);
-                    pixelRight = m_image.at<unsigned char>(cv::Point(y, x));
+                    //pixelRight = m_image.at<unsigned char>(cv::Point(y, x));
+                    pixelRight = m_image.at<cv::Vec3b>(y, x);
+                      int B = pixelRight.val[0];
+			                int G = pixelRight.val[1];
+			                int R = pixelRight.val[2];
 
-                    if (pixelRight.val[0] >= 200) {
+                    //if (pixelRight.val[0] >= 200) {
+                    if (B >= 220 && G >= 220 && R >= 220){
+                      std::cout << "Left Higher than 220" << std::endl;
                         right.x = x;
                         prev_right_x = x;
                         break;
@@ -180,26 +192,34 @@ namespace automotive {
                 }
 
                 if (m_debug) {
+
+
+
                     if (left.x > 0) {
+
                         cv::Scalar green = CV_RGB(0, 255, 0);
                         //cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
-                        cv::line(&m_image, cv::Point(m_image.cols/2, y), left, green, 1, 8);
+                        cv::line(m_image, cv::Point(m_image.cols/2, y), left, green, 1, 8);
                         stringstream sstr;
                         //sstr << (m_image->width/2 - left.x);
                         sstr << (m_image.cols/2 - left.x);
                         //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
                         //cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 - 100, y - 2), &m_font, green);
-                        cv::putText(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
+                        //cv::putText(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
+                        //cv::putText(m_image, sstr.str(), cv::Point(m_image.cols / 2 - 100, y - 2), &m_font,green);
+                        //cv::putText(*m_image, sstr.str(), cv::Point(m_image.cols / 2 - 100, y - 2), CV_FONT_HERSHEY_COMPLEX_SMALL, 2, green, 1, 8, false);
                     }
                     if (right.x > 0) {
-                        CvScalar red = CV_RGB(255, 0, 0);
+                        cv::Scalar red = CV_RGB(255, 0, 0);
                         //cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
-                        cv::line(&m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
+                        cv::line(m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
                         stringstream sstr;
                         //sstr << (right.x - m_image->width/2);
                         sstr << (right.x - m_image.cols/2);
                         //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
-                        cv::putText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
+                      //  cv::putText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
+                      //cv::putText(m_image, sstr.str(), cv:: Point(m_image.cols / 2 + 100, y - 2), &m_font,red);
+                      //cv::putText(*m_image, sstr.str(), cv:: Point(m_image.cols / 2 + 100, y - 2), CV_FONT_HERSHEY_COMPLEX_SMALL, 2, red, 1, 8, false);
                     }
                 }
 
