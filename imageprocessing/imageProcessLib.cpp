@@ -70,6 +70,7 @@ void imageProcess::theInterestingPart() {
 		HoughlinesPLR();
 	}
 	resetSize();
+
 }
 
 void imageProcess::setSize(int width, int height) {
@@ -120,7 +121,7 @@ void imageProcess::setContrast(double alphaVal, double betaVal, bool isActive) {
 	this->beta = betaVal;
 }
 
-void imageProcess::setThreshold(uchar thesVal, bool isActive) {
+void imageProcess::setThreshold(double thesVal, bool isActive) {
 	usesMakeBinary = isActive;
 	this->threshold = thesVal;
 }
@@ -188,7 +189,7 @@ void imageProcess::setHoughLinesPLRBool(bool active){
 void imageProcess::makeBinary()
 {
 
-	cv::cvtColor(*frame, *frame, cv::COLOR_BGR2GRAY); // make 8-bit single channel
+	cv::cvtColor(*frame, *frame, CV_BGR2GRAY); // make 8-bit single channel
 	cv::GaussianBlur(*frame, *frame, cv::Size(5, 5), 2, 2); //Add some blur
 	cv::threshold(*frame, *frame, threshold, 255, cv::THRESH_BINARY); // Threshold the image
 }
