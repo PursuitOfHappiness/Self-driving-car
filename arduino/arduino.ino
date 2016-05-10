@@ -29,7 +29,7 @@ const int irRearRightPin = 1;      // pin to which the rear right infrared senso
 const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is attached
 
 // Ledstrips
-const int ledPin = 10;
+const int ledPin = 11;
 
 // ----------------------- //
 // Instatiation of objects //
@@ -60,9 +60,11 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(2), wheelPulse, RISING); // interupts from wheel encoder
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   wheelPulses = 0;
+  strip.begin();
+  strip.show();
   Wire.begin();
   // Setting up the sonars and limiting the range to 1 meter.
-
+  /*
   Wire.beginTransmission(FC_08_ADDRESS);
   Wire.write(0x00);
   Wire.write(GAIN_REGISTER);
@@ -74,7 +76,7 @@ void setup() {
   Wire.write(GAIN_REGISTER);
   Wire.write(LOCATION_REGISTER);
   Wire.endTransmission();
-
+  */
 }
 
 void loop() {
@@ -92,10 +94,12 @@ void loop() {
     }
   }
   if (rcControllerFlag == 1) { // if an interupt is read from the RC-Controller
+    ledsRCController();
     motor.writeMicroseconds(1500);
     steering.write(90);
     if (pulseIn(rcPinSteer, HIGH, 25000) == 0) { // if RC-Controller is turned off
       rcControllerFlag = 0;
+      ledsOff();
     }
   } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
@@ -108,6 +112,7 @@ void loop() {
       } else if (data[0] < 1500) { // we get a new speed moving backwards
         ledsBacking();
       }
+
       setSteering(data[1]);
     }
     inputBuffer = "";
@@ -133,11 +138,11 @@ void wheelPulse() {
  */
 String getUSData() {
   String USF = "USF ";
-  //USF.concat(FrontCenterSonar.getRange(unit));
-  USF.concat(fifo(frCSArray, usCalc(FC_08_ADDRESS))); // smooth values
+  USF.concat(usCalc(FC_08_ADDRESS));
+  //USF.concat(fifo(frCSArray, usCalc(FC_08_ADDRESS))); // smooth values
   String USR = " USR ";
-  //USR.concat(FrontRightSonar.getRange(unit));
-  USR.concat(fifo(frRSArray, usCalc(FR_08_ADDRESS))); // smooth values
+  USR.concat(usCalc(FR_08_ADDRESS));
+  //USR.concat(fifo(frRSArray, usCalc(FR_08_ADDRESS))); // smooth values
 
   return USF + USR;
 }
@@ -147,14 +152,14 @@ String getUSData() {
  */
 String getIRData() {
   String IRFR = " IRFR ";
-  //IRFR.concat(irCalc(irFrontRightPin));
-  IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));  // smooth values
+  IRFR.concat(irCalc(irFrontRightPin));
+  //IRFR.concat(fifo(iRFRArray, irCalc(irFrontRightPin)));  // smooth values
   String IRRR = " IRRR ";
-  //IRRR.concat(irCalc(irRearRightPin));
-  IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin))); // smooth values
+  IRRR.concat(irCalc(irRearRightPin));
+  //IRRR.concat(fifo(iRRRArray, irCalc(irRearRightPin))); // smooth values
   String IRRC = " IRRC ";
-  //IRRC.concat(irCalc(irRearCenterPin));
-  IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));  // smooth values
+  IRRC.concat(irCalc(irRearCenterPin));
+  //IRRC.concat(fifo(iRRCArray, irCalc(irRearCenterPin)));  // smooth values
 
   return IRFR + IRRR + IRRC;
 }
@@ -243,7 +248,7 @@ int fifo(int array[], int newValue) {
     sum += newValue;
     divideby++;
   }
-  if (divideby < 3){ // less than 3 values is treated as ghost values
+  if (divideby < 2){ // less than 3 values is treated as ghost values
     return -1;
   }
   return sum / divideby;
@@ -348,6 +353,15 @@ void ledsFullStop(){
   strip.show();
 }
 /*
+ * Sets pixels to all blue for when rc-controller is on
+ */
+void ledsRCController(){
+ for (int i = 0; i < strip.numPixels(); i++) {
+   strip.setPixelColor(i, strip.Color(0, 0, 100)); // blue
+ }
+ strip.show();
+}
+/*
  * Sets pixels to imitate lights when backing
  */
 void ledsBacking(){
@@ -387,4 +401,13 @@ void ledsRightTurn(){
     strip.setPixelColor((i + 8), strip.Color(100, 0, 0)); // red
   }
   strip.show();
+}
+/*
+ * Sets all pixels to off
+ */
+void ledsOff(){
+for (int i = 0; i < strip.numPixels(); i++) {
+  strip.setPixelColor(i, strip.Color(0, 0, 0)); // blue
+}
+strip.show();
 }
