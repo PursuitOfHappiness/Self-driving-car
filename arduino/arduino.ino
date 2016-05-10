@@ -29,16 +29,15 @@ const int irRearRightPin = 1;      // pin to which the rear right infrared senso
 const int irRearCenterPin  = 2;    // pin to which the rear infrared sensor is attached
 
 // Ledstrips
-const int ledPin = 2;
+const int ledPin = 10;
 
 // ----------------------- //
 // Instatiation of objects //
 // ----------------------- //
 Servo motor, steering;
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, PIN, NEO_GRB + NEO_KHZ800);
+Adafruit_NeoPixel strip = Adafruit_NeoPixel(16, ledPin, NEO_GRB + NEO_KHZ800);
 volatile int wheelPulses, rcControllerFlag;
 const int fifoSize = 3;             // Decides the size of the following arrays
-int speedReference, referenceCount;
 int frCSArray[fifoSize] = {0};      // Front Center US
 int frRSArray[fifoSize] = {0};      // Front Right US
 int iRFRArray[fifoSize] = {0};      // Right Front IR
@@ -61,14 +60,8 @@ void setup() {
   attachInterrupt(digitalPinToInterrupt(2), wheelPulse, RISING); // interupts from wheel encoder
   rcControllerFlag = 0; // Set to 1 if RC controller is turned on (interupt)
   wheelPulses = 0;
-  speedReference = 1500;
-  referenceCount = 0;
-
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
-
-  // Setting up the sonars and limiting the range to 1 meter.
   Wire.begin();
+  // Setting up the sonars and limiting the range to 1 meter.
 
   Wire.beginTransmission(FC_08_ADDRESS);
   Wire.write(0x00);
@@ -107,31 +100,13 @@ void loop() {
   } else if (newCommand){ // If a full command has been read form the serial communication
     int data[2];
     if (decodeNetstring(inputBuffer) == 1){
-      Serial.println("decode netstring correct");
       dataFromSerial(decodedFromOdroid, data); // decode netstring, and extract data
       if (data[0] == 1500){
-        setSpeed(1500);
-        speedReference = 1500;
-      } else if (data[0] != speedReference && data[0] > 1500){ // we get a new speed moving forward
-        speedReference = data[0];
-        setSpeed(1700); // set the speed high to kickstart the car
-        Serial.println("Set speed 1700");
-        int wheelPulsesTemp = wheelPulses;
-        while(wheelPulses < wheelPulsesTemp + 4){
-          // do nothing
-        }
-        setSpeed(1590);// lower the speed again
-        Serial.println("Set speed 1600");
-      } else if (data[0] != speedReference && data[0] < 1500) { // we get a new speed moving backwards
-        speedReference = data[0];
-        setSpeed(1000); // set the speed high to kickstart the car
-        Serial.println("Set speed 1000");
-        int wheelPulsesTemp = wheelPulses;
-        while(wheelPulses < wheelPulsesTemp + 4){
-          // do nothing
-        }
-        setSpeed(1100); // lower the speed again
-        Serial.println("Set speed 1100");
+        ledsFullStop();
+      } else if (data[0] > 1500){ // we get a new speed moving forward
+        ledsDriving();
+      } else if (data[0] < 1500) { // we get a new speed moving backwards
+        ledsBacking();
       }
       setSteering(data[1]);
     }
@@ -352,7 +327,7 @@ void setSteering(int steer){
   }
 }
 /*
- * Sets pixels to imitate front and backlights while driving
+ * Sets pixels to imitate lights when driving
  */
 void ledsDriving(){
   for (int i = 0; i < 2; i++) {
@@ -360,6 +335,15 @@ void ledsDriving(){
     strip.setPixelColor(i + 6, strip.Color(20, 20, 100)); // blue/white
     strip.setPixelColor((i + 8), strip.Color(100, 0, 0)); // red
     strip.setPixelColor((i + 8) + 6, strip.Color(100, 0, 0)); // red
+  }
+  strip.show();
+}
+/*
+ * Sets pixels to imitate lights when breaking
+ */
+void ledsFullStop(){
+  for (int i = 0; i < strip.numPixels(); i++) {
+    strip.setPixelColor(i, strip.Color(100, 0, 0)); // red
   }
   strip.show();
 }
