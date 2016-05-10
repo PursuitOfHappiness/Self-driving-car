@@ -197,20 +197,20 @@ namespace automotive {
                 }
 
                 if (y == CONTROL_SCANLINE) {
-                        // Calculate the deviation error.
-                        if (right.x > 0) {
-                            cerr << "RIGHT" << endl;
-                            e = ((right.x - m_image.cols/2.0) - distance)/distance;
-                        }
-                        else if (left.x > 0) {
-                            cerr << "LEFT" << endl;
-                            e = (distance - (m_image.cols/2.0 - left.x))/distance;
-                        }
-                        else {
-                            e = 0;
-                            no_lines = true;
-                            cerr << "NONE" << endl;
-                        }
+                    // Calculate the deviation error.
+                    if (right.x > 0) {
+                        cerr << "RIGHT" << endl;
+                        e = ((right.x - m_image.cols/2.0) - distance)/distance;
+                    }
+                    else if (left.x > 0) {
+                        cerr << "LEFT" << endl;
+                        e = (distance - (m_image.cols/2.0 - left.x))/distance;
+                    }
+                    else {
+                        e = 0;
+                        no_lines = true;
+                        cerr << "NONE" << endl;
+                    }
                 }
             }
             cerr << "DEVIATION FOUND = " << e << endl;
@@ -219,6 +219,7 @@ namespace automotive {
 
         void LaneFollower::processImage() {
             m_proc.setThreshold(120, true); //Set threshold for makeBinary() to 180
+            m_proc.setContrast(3, -150, true); //Change contrast
             m_proc.processImage(m_image); //Process the m_image
             cv::cvtColor(m_image, m_image, CV_GRAY2RGB); //make the image 3 channel to paint the lines
             double e = findDeviation();
@@ -429,7 +430,6 @@ namespace automotive {
             // Overall state machine handler.
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 bool has_next_frame = false;
-                cerr << "STATE = " << stageMoving << endl;
 
                 // Get the most recent available container for a SharedImage.
                 Container c = getKeyValueDataStore().get(odcore::data::image::SharedImage::ID());
