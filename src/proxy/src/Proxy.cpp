@@ -246,19 +246,20 @@ namespace automotive {
           VehicleData vd;
 
           double cmTrav;
-          bool converted = false;
+          bool converted = true;
 
           size_t index1 = decodedData.find("WP");
 
           try {
             cmTrav = stoi(decodedData.substr(index1 + 2));
-            converted = true;
           }
           catch (std::invalid_argument&){
             cerr << "STOI: Invalid Arguments." << endl;
+            converted = false;
           }
           catch (std::out_of_range&){
             cerr << "STOI: Out of range." << endl;
+            converted = false;
           }
           if (converted){
             vd.setAbsTraveledPath(cmTrav);
@@ -281,7 +282,7 @@ namespace automotive {
           int irRearCenter;
           int usFrontCenter;
           int usFrontRight;
-          bool converted = false;
+          bool converted = true;
 
           size_t index1 = decodedData.find("IRFR");
           size_t index2 = decodedData.find("IRRR");
@@ -295,13 +296,14 @@ namespace automotive {
             irRearCenter = stoi(decodedData.substr(index3 + 4));
             usFrontCenter = stoi(decodedData.substr(index4 + 3));
             usFrontRight = stoi(decodedData.substr(index5 + 3));
-            converted = true;
           }
           catch (std::invalid_argument&){
             cerr << "STOI: Invalid Arguments." << endl;
+            converted = false;
           }
           catch (std::out_of_range&){
             cerr << "STOI: Out of range." << endl;
+            converted = false;
           }
           if (converted){
             sbd.putTo_MapOfDistances(0, irFrontRight);
