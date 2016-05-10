@@ -120,6 +120,8 @@ namespace automotive {
 
                 double findDeviation();
 
+                void measuringMachine();
+
                 void movingMachine(bool has_next_frame);
         };
 
