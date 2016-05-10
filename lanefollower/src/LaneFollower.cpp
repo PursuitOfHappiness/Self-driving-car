@@ -59,7 +59,16 @@ namespace automotive {
             no_lines(false),
             overtake(false),
             m_proc(),
-            m_vehicleControl() {}
+            
+            stageMoving(FORWARD),
+            stageMeasuring(FIND_OBJECT_INIT),
+            stageToRightLaneRightTurn(0),
+            stageToRightLaneLeftTurn(0),
+            distanceToObstacle(0),
+            distanceToObstacleOld(0),
+            m_vehicleControl()
+
+            {}
 
         LaneFollower::~LaneFollower() {}
 
@@ -278,54 +287,9 @@ namespace automotive {
             }
         }
 
-
-
-        // This method will do the main data processing job.
-        // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
-        odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode LaneFollower::body() {
-            KeyValueConfiguration kv = getKeyValueConfiguration();
-            m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
-
-
-            const int32_t ULTRASONIC_FRONT_CENTER = 3;
-            const int32_t ULTRASONIC_FRONT_RIGHT = 4;
-            const int32_t INFRARED_FRONT_RIGHT = 0;
-            const int32_t INFRARED_REAR_RIGHT = 2;
-
-            const double OVERTAKING_DISTANCE = 6; //use 6
-            const double HEADING_PARALLEL = 0.01;
-
-            // const double SPEED_FAST = 1;
+        void LaneFollower::movingMachine(bool has_next_frame) {
             const double SPEED_SLOW = 0.5;
-
-            // Overall state machines for moving and measuring.
-            enum StateMachineMoving { FORWARD, TO_LEFT_LANE_LEFT_TURN, TO_LEFT_LANE_RIGHT_TURN, CONTINUE_ON_LEFT_LANE, TO_RIGHT_LANE_RIGHT_TURN, TO_RIGHT_LANE_LEFT_TURN };
-            enum StateMachineMeasuring { DISABLE, FIND_OBJECT_INIT, FIND_OBJECT, FIND_OBJECT_PLAUSIBLE, HAVE_BOTH_IR, HAVE_BOTH_IR_SAME_DISTANCE, END_OF_OBJECT };
-
-            StateMachineMoving stageMoving = FORWARD;
-            StateMachineMeasuring stageMeasuring = FIND_OBJECT_INIT;
-
-            // State counter for dynamically moving back to right lane.
-            int32_t stageToRightLaneRightTurn = 0;
-            int32_t stageToRightLaneLeftTurn = 0;
-
-            // Distance variables to ensure we are overtaking only stationary or slowly driving obstacles.
-            double distanceToObstacle = 0;
-            double distanceToObstacleOld = 0;
-
-            // Overall state machine handler.
-            while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
-                bool has_next_frame = false;
-                cerr << "STATE = " << stageMoving << endl;
-
-                // Get the most recent available container for a SharedImage.
-                Container c = getKeyValueDataStore().get(odcore::data::image::SharedImage::ID());
-                if (c.getDataType() == odcore::data::image::SharedImage::ID()) {
-                    // Example for processing the received container.
-                    has_next_frame = readSharedImage(c);
-                }
-
-                // 1. Get most recent vehicle data:
+            // 1. Get most recent vehicle data:
                 Container containerVehicleData = getKeyValueDataStore().get(VehicleData::ID());
                 VehicleData vd = containerVehicleData.getData<VehicleData> ();
 
@@ -334,8 +298,7 @@ namespace automotive {
                 SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
 
 
-                // Moving state machine.
-                if (stageMoving == FORWARD && true == has_next_frame) {
+            if (stageMoving == FORWARD && true == has_next_frame) {
                     // Go forward.
                     // vc.setSpeed(SPEED_FAST);
                     // vc.setSteeringWheelAngle(0);
@@ -401,6 +364,62 @@ namespace automotive {
                     }
                 }
 
+        }
+
+        // This method will do the main data processing job.
+        // Therefore, it tries to open the real camera first. If that fails, the virtual camera images from camgen are used.
+        odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode LaneFollower::body() {
+            KeyValueConfiguration kv = getKeyValueConfiguration();
+            m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
+
+
+            const int32_t ULTRASONIC_FRONT_CENTER = 3;
+            const int32_t ULTRASONIC_FRONT_RIGHT = 4;
+            const int32_t INFRARED_FRONT_RIGHT = 0;
+            const int32_t INFRARED_REAR_RIGHT = 2;
+
+            const double OVERTAKING_DISTANCE = 6; //use 6
+            const double HEADING_PARALLEL = 0.01;
+
+            // const double SPEED_FAST = 1;
+            //const double SPEED_SLOW = 0.5;
+
+            // Overall state machines for moving and measuring.
+            // enum StateMachineMoving { FORWARD, TO_LEFT_LANE_LEFT_TURN, TO_LEFT_LANE_RIGHT_TURN, CONTINUE_ON_LEFT_LANE, TO_RIGHT_LANE_RIGHT_TURN, TO_RIGHT_LANE_LEFT_TURN };
+            // enum StateMachineMeasuring { DISABLE, FIND_OBJECT_INIT, FIND_OBJECT, FIND_OBJECT_PLAUSIBLE, HAVE_BOTH_IR, HAVE_BOTH_IR_SAME_DISTANCE, END_OF_OBJECT };
+
+            // StateMachineMoving stageMoving = FORWARD;
+            // StateMachineMeasuring stageMeasuring = FIND_OBJECT_INIT;
+
+            // State counter for dynamically moving back to right lane.
+            // int32_t stageToRightLaneRightTurn = 0;
+            // int32_t stageToRightLaneLeftTurn = 0;
+
+            // Distance variables to ensure we are overtaking only stationary or slowly driving obstacles.
+            // double distanceToObstacle = 0;
+            // double distanceToObstacleOld = 0;
+
+            // Overall state machine handler.
+            while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
+                bool has_next_frame = false;
+                cerr << "STATE = " << stageMoving << endl;
+
+                // Get the most recent available container for a SharedImage.
+                Container c = getKeyValueDataStore().get(odcore::data::image::SharedImage::ID());
+                if (c.getDataType() == odcore::data::image::SharedImage::ID()) {
+                    // Example for processing the received container.
+                    has_next_frame = readSharedImage(c);
+                }
+
+                // 1. Get most recent vehicle data:
+                Container containerVehicleData = getKeyValueDataStore().get(VehicleData::ID());
+                VehicleData vd = containerVehicleData.getData<VehicleData> ();
+
+                // 2. Get most recent sensor board data:
+                Container containerSensorBoardData = getKeyValueDataStore().get(automotive::miniature::SensorBoardData::ID());
+                SensorBoardData sbd = containerSensorBoardData.getData<SensorBoardData> ();
+
+                movingMachine(has_next_frame);
 
                 // Measuring state machine.
                 if (stageMeasuring == FIND_OBJECT_INIT) {
