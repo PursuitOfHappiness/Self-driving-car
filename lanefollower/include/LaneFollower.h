@@ -85,7 +85,6 @@ namespace automotive {
             private:
 	            bool m_hasAttachedToSharedImageMemory;
 	            std::shared_ptr<odcore::wrapper::SharedMemory> m_sharedImageMemory;
-	          //  IplImage *m_image;
             cv::Mat m_image;
                 bool m_debug;
                 CvFont m_font;
@@ -94,9 +93,7 @@ namespace automotive {
                 double m_eSum;
                 double m_eOld;
 				double midLane;
-				int calibration;
 				int distance;
-				int distanceOld;
 				bool no_lines;
 				bool overtake;
         imageProcess m_proc;
@@ -108,6 +105,8 @@ namespace automotive {
 	            virtual void tearDown();
 
                 void processImage();
+
+                void drawLines(int32_t y, cv::Point left, cv::Point right);
 
                 double findDeviation();
         };
