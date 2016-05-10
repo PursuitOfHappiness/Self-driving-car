@@ -202,7 +202,7 @@ namespace automotive {
 
   		            sendCounter++;  // Dont send to arduino every loop
   		            //if(my_serial->isOpen() && sendCounter > 5 && (oldSpeed != speedTemp || oldAngle != vcDegree)){
-  		            if(my_serial->isOpen() && sendCounter > 15){
+  		            if(my_serial->isOpen() && sendCounter > 5){
                     sendOverSerial(speedTemp, vcDegree);
   		              sendCounter = 0;
   		             //oldSpeed = speedTemp;
