@@ -202,7 +202,7 @@ namespace automotive {
 
   		            sendCounter++;  // Dont send to arduino every loop
   		            //if(my_serial->isOpen() && sendCounter > 5 && (oldSpeed != speedTemp || oldAngle != vcDegree)){
-  		            if(my_serial->isOpen() && sendCounter > 5){
+  		            if(my_serial->isOpen() && sendCounter > 15){
                     sendOverSerial(speedTemp, vcDegree);
   		              sendCounter = 0;
   		             //oldSpeed = speedTemp;
@@ -264,6 +264,7 @@ namespace automotive {
             vd.setAbsTraveledPath(cmTrav);
             converted = false;
           }
+
 
           cout << "cmTrav: " << vd.getAbsTraveledPath() << endl;
 

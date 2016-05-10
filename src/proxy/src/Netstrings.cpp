@@ -8,7 +8,7 @@ namespace automotive {
     namespace miniature {
 
         using namespace std;
-        
+
         Netstrings::Netstrings(){
         	// constructor
         }
@@ -64,4 +64,3 @@ namespace automotive {
         }
 	}
 }
-
