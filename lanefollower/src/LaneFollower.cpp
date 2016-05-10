@@ -47,7 +47,6 @@ namespace automotive {
 
             m_hasAttachedToSharedImageMemory(false),
             m_sharedImageMemory(),
-          //  m_image(NULL),
             m_image(),
             m_debug(false),
             m_font(),
@@ -55,9 +54,7 @@ namespace automotive {
             m_eSum(0),
             m_eOld(0),
             midLane(0),
-            calibration(0),
             distance(250),
-            distanceOld(0),
 
             no_lines(false),
             overtake(false),
@@ -123,11 +120,26 @@ namespace automotive {
 
                     // Mirror the image.
                     //cvFlip(&m_image, 0, -1);
-			cv::flip(m_image,m_image,1); //sim flip 
+			        cv::flip(m_image,m_image,-1); //sim flip 
                     retVal = true;
                 }
             }
             return retVal;
+        }
+
+        void LaneFollower::drawLines(int32_t y, cv::Point left, cv::Point right){
+            if (left.x > 0) {
+                cv::Scalar green = CV_RGB(0, 255, 0);
+                cv::line(m_image, cv::Point(m_image.cols/2, y), left, green, 1, 8);
+                stringstream sstr;
+                sstr << (m_image.cols/2 - left.x);
+            }
+            if (right.x > 0) {
+                cv::Scalar red = CV_RGB(255, 0, 0);        
+                cv::line(m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
+                stringstream sstr;        
+                sstr << (right.x - m_image.cols/2);       
+            }
         }
 
         double LaneFollower::findDeviation() {
@@ -192,54 +204,10 @@ namespace automotive {
                 }
 
                 if (m_debug) {
-
-
-
-                    if (left.x > 0) {
-
-                        cv::Scalar green = CV_RGB(0, 255, 0);
-                        //cvLine(m_image, cvPoint(m_image->width/2, y), left, green, 1, 8);
-                        cv::line(m_image, cv::Point(m_image.cols/2, y), left, green, 1, 8);
-                        stringstream sstr;
-                        //sstr << (m_image->width/2 - left.x);
-                        sstr << (m_image.cols/2 - left.x);
-                        //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 - 100, y - 2), &m_font, green);
-                        //cvPutText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 - 100, y - 2), &m_font, green);
-                        //cv::putText(Mat& img, const string& text, Point org, int fontFace, double fontScale, Scalar color, int thickness=1, int lineType=8, bool bottomLeftOrigin=false )
-                        //cv::putText(m_image, sstr.str(), cv::Point(m_image.cols / 2 - 100, y - 2), &m_font,green);
-                        //cv::putText(*m_image, sstr.str(), cv::Point(m_image.cols / 2 - 100, y - 2), CV_FONT_HERSHEY_COMPLEX_SMALL, 2, green, 1, 8, false);
-                    }
-                    if (right.x > 0) {
-                        cv::Scalar red = CV_RGB(255, 0, 0);
-                        //cvLine(m_image, cvPoint(m_image->width/2, y), right, red, 1, 8);
-                        cv::line(m_image, cvPoint(m_image.cols/2, y), right, red, 1, 8);
-                        stringstream sstr;
-                        //sstr << (right.x - m_image->width/2);
-                        sstr << (right.x - m_image.cols/2);
-                        //cvPutText(m_image, sstr.str().c_str(), cvPoint(m_image->width/2 + 100, y - 2), &m_font, red);
-                      //  cv::putText(&m_image, sstr.str().c_str(), cvPoint(m_image.cols/2 + 100, y - 2), &m_font, red);
-                      //cv::putText(m_image, sstr.str(), cv:: Point(m_image.cols / 2 + 100, y - 2), &m_font,red);
-                      //cv::putText(*m_image, sstr.str(), cv:: Point(m_image.cols / 2 + 100, y - 2), CV_FONT_HERSHEY_COMPLEX_SMALL, 2, red, 1, 8, false);
-                    }
+                    drawLines(y, left, right);
                 }
 
                 if (y == CONTROL_SCANLINE) {
-                	if (calibration > 0) {
-                        if (distanceOld == 0) {
-                            cerr << "DISTANCE OLD = " << distanceOld << endl;
-                            distance = ((right.x + left.x)/2)*0.9; //multiply by 0.9 to stay slightly closer to the trusted line marking
-                            distanceOld = distance;
-                            cerr << "DISTANCE OLD = " << distanceOld << endl;
-
-                            cerr << "DISTANCE = " << distance;
-                        } else {
-                            distanceOld = distance;
-                            distance = (((right.x + left.x)/2)*0.9 + distanceOld)/2;
-                        }
-                        cerr << "CALIBRATION: " << "OLD DISTANCE: " << distanceOld << " NEW DISTANCE: " << distance << endl;
-                		calibration --;
-                        e = 0;
-                	} else {
                         // Calculate the deviation error.
                         if (right.x > 0) {
                             cerr << "RIGHT" << endl;
@@ -258,7 +226,7 @@ namespace automotive {
                             no_lines = true;
                             cerr << "NONE" << endl;
                         }
-                    }
+                    //}
 
                 }
             }
@@ -267,7 +235,7 @@ namespace automotive {
         }
 
         void LaneFollower::processImage() {
-          m_proc.setThreshold(180, true); //Set threshold for makeBinary() to 180
+          m_proc.setThreshold(120, true); //Set threshold for makeBinary() to 180
           m_proc.processImage(m_image); //Process the m_image
           cv::cvtColor(m_image, m_image, CV_GRAY2RGB); //make the image 3 channel to paint the lines
             double e = findDeviation();
@@ -318,14 +286,6 @@ namespace automotive {
             KeyValueConfiguration kv = getKeyValueConfiguration();
             m_debug = kv.getValue<int32_t> ("lanefollower.debug") == 1;
 
-            // Initialize fonts.
-            const double hscale = 0.4;
-            const double vscale = 0.3;
-            const double shear = 0.2;
-            const int thickness = 1;
-            const int lineType = 6;
-
-            cvInitFont(&m_font, CV_FONT_HERSHEY_DUPLEX, hscale, vscale, shear, thickness, lineType);
 
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
