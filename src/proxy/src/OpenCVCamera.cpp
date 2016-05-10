@@ -61,7 +61,7 @@ namespace automotive {
                         IplImage *tmpFrame = cvRetrieveFrame(m_capture);
 
                         if (m_image == NULL) {
-                            m_image = cvCreateImage(cvGetSize(tmpFrame), IPL_DEPTH_8U, 1);                    
+                            m_image = cvCreateImage(cvGetSize(tmpFrame), IPL_DEPTH_8U, 1);
                         }
 
                         cvCvtColor(tmpFrame, m_image, CV_BGR2GRAY);
@@ -82,7 +82,7 @@ namespace automotive {
             if ( (dest != NULL) && (size > 0) && (m_image != NULL) ) {
                 ::memcpy(dest, m_image->imageData, size);
 
-                cvShowImage("WindowShowImage", m_image);
+                //cvShowImage("WindowShowImage", m_image);
                 cvWaitKey(10);
 
                 retVal = true;
@@ -93,4 +93,3 @@ namespace automotive {
 
     }
 } // automotive::miniature
-
