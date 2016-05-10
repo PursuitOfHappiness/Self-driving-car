@@ -96,7 +96,17 @@ namespace automotive {
 				int distance;
 				bool no_lines;
 				bool overtake;
-        imageProcess m_proc;
+        		imageProcess m_proc;
+
+        		// Overall state machines for moving and measuring.
+        		enum StateMachineMoving { FORWARD, TO_LEFT_LANE_LEFT_TURN, TO_LEFT_LANE_RIGHT_TURN, CONTINUE_ON_LEFT_LANE, TO_RIGHT_LANE_RIGHT_TURN, TO_RIGHT_LANE_LEFT_TURN };
+            	enum StateMachineMeasuring { DISABLE, FIND_OBJECT_INIT, FIND_OBJECT, FIND_OBJECT_PLAUSIBLE, HAVE_BOTH_IR, HAVE_BOTH_IR_SAME_DISTANCE, END_OF_OBJECT };
+            	StateMachineMoving stageMoving;
+            	StateMachineMeasuring stageMeasuring;
+            	int32_t stageToRightLaneRightTurn;
+            	int32_t stageToRightLaneLeftTurn;
+            	double distanceToObstacle;
+            	double distanceToObstacleOld;
 
                 automotive::VehicleControl m_vehicleControl;
 
@@ -109,6 +119,10 @@ namespace automotive {
                 void drawLines(int32_t y, cv::Point left, cv::Point right);
 
                 double findDeviation();
+
+                void measuringMachine();
+
+                void movingMachine(bool has_next_frame);
         };
 
     }

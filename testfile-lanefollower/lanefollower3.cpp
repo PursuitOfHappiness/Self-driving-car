@@ -119,7 +119,7 @@ namespace automotive {
                     }
 
                     // Mirror the image.
-			        cv::flip(m_image,m_image,-1); //only use in simulator
+			        //cv::flip(m_image,m_image,-1); //only use in simulator
                     retVal = true;
                 }
             }
@@ -218,8 +218,8 @@ namespace automotive {
         }
 
         void LaneFollower::processImage() {
-            m_proc.setThreshold(120, true); //Set threshold for makeBinary() to 180
-            m_proc.setContrast(3, -150, true); //Change contrast
+            m_proc.setThreshold(220, true); //Set threshold for makeBinary() to 180
+            //m_proc.setContrast(3, -150, true); //Change contrast
             m_proc.processImage(m_image); //Process the m_image
             cv::cvtColor(m_image, m_image, CV_GRAY2RGB); //make the image 3 channel to paint the lines
             double e = findDeviation();
@@ -267,7 +267,7 @@ namespace automotive {
             const int32_t INFRARED_FRONT_RIGHT = 0;
             const int32_t INFRARED_REAR_RIGHT = 2;
 
-            const double OVERTAKING_DISTANCE = 6; //use 6
+            const double OVERTAKING_DISTANCE = 40; //use 6
             const double HEADING_PARALLEL = 0.01;
             
             // 1. Get most recent vehicle data:
