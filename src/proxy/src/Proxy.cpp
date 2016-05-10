@@ -215,7 +215,6 @@ namespace automotive {
   		              if (c == ","){
   		                newCommand = true; // When a full netstring has arrived
   		              }
-  		            }
   		            if (newCommand){
   		              string decoded = netstrings.decodeNetstring(result);
   		              sbdDistribute(decoded); // Distribute SensorBoardData
@@ -224,6 +223,7 @@ namespace automotive {
   		              result = ""; // clear buffer
   		            }
 		            }
+              }
 		     }
 
 		        cout << "Proxy: Captured " << captureCounter << " frames." << endl;
