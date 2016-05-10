@@ -263,7 +263,6 @@ namespace automotive {
           }
           if (converted){
             vd.setAbsTraveledPath(cmTrav);
-            converted = false;
           }
 
 
@@ -311,7 +310,6 @@ namespace automotive {
             sbd.putTo_MapOfDistances(2, irRearCenter);
             sbd.putTo_MapOfDistances(3, usFrontCenter);
             sbd.putTo_MapOfDistances(4, usFrontRight);
-            converted = false;
           }
 
 
