@@ -395,7 +395,7 @@ void imageProcess::filterWhiteAreas() {
 		//Prints out the arc length found of white pixels
 		//std::cout << "Length detected:  ";
 		//std::cout << b << std::endl;
-		if ((a > whiteAreaMaxLimit) && (a > whiteAreaMin) && (b < whiteLengthLimit)) {
+		if ((a > whiteAreaMaxLimit) && (b < whiteLengthLimit)) {
 
 			approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 8, true);
 			//convexHull(Mat(contours[i]), contours_poly[i], true);
@@ -410,7 +410,7 @@ void imageProcess::filterWhiteAreas() {
 			//Draws a green (unfilled)polygon on the frame for testing/demo
 			//drawContours(input, contours_poly, i, cv::Scalar(0, 255, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
 			//Draws a black polygon on the binary image where we get too much light
-			drawContours(*frame, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
+			drawContours(*frame, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11)); //Increase thiscv::Point size if the white area is not fully covered, uneven values
 		}
 
 	}
