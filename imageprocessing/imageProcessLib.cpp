@@ -9,6 +9,7 @@ imageProcess::imageProcess() :
 		usesRoiMaker(false),
 		usesSkelMaker(false),
 		usesFilterWhiteAreas(false),
+    usesFilterWhiteLines(false),
 		usesHoughLinesPLR(false),
 		origWidth(0),
 		origHeight(0),
@@ -21,8 +22,8 @@ imageProcess::imageProcess() :
 		horizontalPos(0),
 		skewed(0),
 		whiteAreaMaxLimit(0),
-		whiteAreaMin(0),
-		whiteLengthLimit(0),
+		angle(0),
+    areaMaxLimit(0),
 		houghThreshold(0),
 		minLineLength(0),
 		maxLineGap(0),
@@ -63,6 +64,9 @@ void imageProcess::theInterestingPart() {
 	if (usesFilterWhiteAreas) {
 		filterWhiteAreas();
 	}
+  if (usesFilterWhiteLines) {
+    filterWhiteLines();
+  }
 	if (usesSkelMaker) {
 		skelMaker();
 	}
@@ -83,37 +87,6 @@ void imageProcess::setSize(int width, int height) {
 void imageProcess::resetSize() {
 	cv::resize(*frame, *frame, cv::Size(origWidth, origHeight));
 }
-/*
-// Function to start object with some default values
-void imageProcess::setDefaultValues() {
-	// Contrast() variables
-	alpha = 1;
-	beta = 0;
-
-	//makeBinary()
-	threshold = 190;
-
-	// Threshold() variables
-	light = 0;
-
-	// fixLight() variables
-	range = 255;
-
-	// ROIMaker() variables
-	verticalPos = 120;
-	horizontalPos = 120;
-	skewed = 20;
-
-	// filterWhiteAreas() variables
-	whiteAreaMaxLimit = 4000;
-	whiteAreaMin = 1000;
-	whiteLengthLimit = 800;
-
-	//HoughLinesPLR() variables
-	houghThreshold = 20;
-	minLineLength = 2;
-	maxLineGap = 40;
-}*/
 
 void imageProcess::setContrast(double alphaVal, double betaVal, bool isActive) {
 	usesContrast = isActive;
@@ -143,11 +116,16 @@ void imageProcess::setRoi(short verticalPosVal, short horizontalPosVal, short sk
 	this->skewed = skewedVal;
 }
 
-void imageProcess::setWhiteFilter(double areaMaxLimitVal, double areaMinVal, double areaLengthVal, bool isActive) {
+void imageProcess::setWhiteFilter(double areaMaxLimitVal, bool isActive) {
 	usesFilterWhiteAreas = isActive;
 	this->whiteAreaMaxLimit = areaMaxLimitVal;
-	this->whiteAreaMin = areaMinVal;
-	this->whiteLengthLimit = areaLengthVal;
+
+}
+
+void imageProcess::setFilterWhiteLines (float angleVal, double areaMaxLimitVal, bool isActive) {
+  usesFilterWhiteLines = isActive;
+  this->angle = angleVal;
+  this->areaMaxLimit = areaMaxLimitVal;
 }
 
 void imageProcess::setHoughLines(uchar thresholdVal, double maxLineGapVal, double minLineLengthVal, bool isActive) {
@@ -180,6 +158,10 @@ void imageProcess::setROIBool(bool active){
 
 void imageProcess::setWhiteFilterBool(bool active){
 	usesFilterWhiteAreas = active;
+}
+
+void imageProcess::setFilterWhiteLines(bool active) {
+  usesFilterWhiteLines = active;
 }
 
 void imageProcess::setHoughLinesPLRBool(bool active){
@@ -370,50 +352,51 @@ void imageProcess::filterWhiteAreas() {
 	std::vector<cv::Vec4i> hierarchy;
 
 	frame->copyTo(temp);
-	//find contours will change the src image, imgthres2, so we use a copy to find large white cluster of pixels
+	//find contours will change the src image, so we use a copy to find large white cluster of pixels
 	cv::findContours(temp, contours, hierarchy, CV_RETR_LIST, CV_CHAIN_APPROX_SIMPLE);
 	std::vector<std::vector<cv::Point>> contours_poly(contours.size());
 	std::vector<cv::RotatedRect> boundRect(contours.size());
 
 	for (size_t i = 0; i < contours.size(); i++)
 	{
-		//approxPolyDP(Mat(contours[i]), contours_poly[i], 8, true);
+
 		double a = contourArea(contours[i], false);
-		double b = arcLength(contours[i], true);
-		//boundRect[i] = minAreaRect(Mat(contours[i]));
 
 
-		/*double c =  boundRect[i].size.width;
-		double d = boundRect[i].size.height;
-		cout << "ELLIPSE WIDTH";
-		cout << c << endl;
-		cout << "ELLIPSE HEIGHT";
-		cout << d << endl;*/
-		//Prints out the area of found of white pixels
-		//std::cout << "Area detected:  ";
-		//std::cout << a << std::endl;
-		//Prints out the arc length found of white pixels
-		//std::cout << "Length detected:  ";
-		//std::cout << b << std::endl;
-		if ((a > whiteAreaMaxLimit) && (b < whiteLengthLimit)) {
+		if ((a > whiteAreaMaxLimit)) {
 
 			approxPolyDP(cv::Mat(contours[i]), contours_poly[i], 8, true);
-			//convexHull(Mat(contours[i]), contours_poly[i], true);
-			//ellipse(frame, boundRect[i], Scalar(0, 0, 255), 2, 8);
-			/*Point2f rect_points[4];
-			boundRect[i].points(rect_points);
-			for (int j = 0; j < 4; j++) {
-			line(frame, rect_points[j], rect_points[(j + 1) % 4], Scalar(0, 0, 255), 1, 8);
-			}*/
-
-
-			//Draws a green (unfilled)polygon on the frame for testing/demo
-			//drawContours(input, contours_poly, i, cv::Scalar(0, 255, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
-			//Draws a black polygon on the binary image where we get too much light
-			drawContours(*frame, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11)); //Increase thiscv::Point size if the white area is not fully covered, uneven values
+			drawContours(*frame, contours_poly, i, cv::Scalar(0, 0, 0), -1, 8, hierarchy, 0, cv::Point(11, 11));
 		}
 
 	}
+}
+
+
+void imageProcess::filterWhiteLines() {
+
+std::vector<std::vector<cv::Point> > contours; // Vector for storing contour of hite pixels areas
+cv::Mat temp; //Temp Mat to not change the original
+std::vector<cv::Vec4i> hierarchy;
+frame->copyTo(temp);
+cv::findContours(temp, contours, hierarchy, CV_RETR_EXTERNAL, CV_CHAIN_APPROX_SIMPLE);
+std::vector<cv::RotatedRect> rotRect(contours.size());
+
+for (size_t i = 0; i < contours.size(); i++)
+{
+  rotRect[i] = cv::minAreaRect(cv::Mat(contours[i]));
+  double a = contourArea(contours[i], false);
+  double c = rotRect[i].size.width;
+  double d = rotRect[i].size.height;
+  float e = rotRect[i].angle;
+
+  if ((e > angle) && (c > d)&& (a < areaMaxLimit)) {
+
+    drawContours(*frame, contours,i, cv::Scalar(0, 0, 0), -1, CV_AA, hierarchy, 2, cv::Point(0, 0));
+
+  }
+
+}
 }
 
 void imageProcess::HoughlinesPLR() {
