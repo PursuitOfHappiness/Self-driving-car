@@ -37,6 +37,7 @@ private:
 	bool usesRoiMaker;   // true = ROIMaker() will run
 	bool usesSkelMaker;  // true = skelMaker will run
 	bool usesFilterWhiteAreas; // true = whiteAreaFilter() will run
+	bool usesFilterWhiteLines; // true = on
 	bool usesHoughLinesPLR; //// true = HoughLinesPLR() will run
 
 	// Original Frame width and height, used when image is resized and then reset to original size
@@ -63,8 +64,10 @@ private:
 
 	// filterWhiteAreas() variables
 	double whiteAreaMaxLimit; // whiteAreaMaxLimit = double to set the threshold for how big areas should be detected and "erased"
-	double whiteAreaMin;  // whiteAreaMin = double to set the minimum area threshold for areas to be detected
-	double whiteLengthLimit; // whiteLengthLimit = double to set the archLength threshold for length of areas to be detected, areas longer than this value will be ignored
+
+	// filterWhiteLines() variables
+	float angle; // between -90 and 0
+	double areaMaxLimit; // set the roof for th area of the contour
 
 	//  HoughLinesPLR() variables
 	double houghThreshold; // houghThreshold = double to set the threshold for houghtransform probabilistic
@@ -92,7 +95,8 @@ public:
 	void setCustomThreshold(uchar light, bool isActive);
 	void setLightRange(uchar rangeVal, bool isActive);
 	void setRoi(short verticalPosVal, short horizontalPosVal, short skewedVal, bool isActive);
-	void setWhiteFilter(double areaMaxLimitVal, double areaMinVal, double areaLengthVal, bool isActive);
+	void setWhiteFilter(double areaMaxLimitVal, bool isActive);
+	void setFilterWhiteLines(float angleVal,double areaMaxLimitVal, bool isActive);
 	void setHoughLines(uchar thresholdVal, double maxLineGapVal, double minLineLengthVal, bool isActive);
 
 	void setContrastBool(bool active);
@@ -101,6 +105,7 @@ public:
 	void setFixLightBool(bool active);
 	void setROIBool(bool active);
 	void setWhiteFilterBool(bool active);
+	void setFilterWhiteLines(bool active);
 	void setHoughLinesPLRBool(bool active);
 
 private:
@@ -134,6 +139,9 @@ private:
 
 	// Algorithm that takes a single channel cv::Mat and detect polygon areas of a certain area and arclength and paints detected areas black
 	void filterWhiteAreas();
+
+ // removes the horizontal lines/contours found
+	void filterWhiteLines();
 
 	// Detect HoughlinesP on left side and right side of an image,it uses the ROI split function to do this
 	void HoughlinesPLR();
