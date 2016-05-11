@@ -96,7 +96,7 @@ public:
 	void setLightRange(uchar rangeVal, bool isActive);
 	void setRoi(short verticalPosVal, short horizontalPosVal, short skewedVal, bool isActive);
 	void setWhiteFilter(double areaMaxLimitVal, bool isActive);
-	void setFilterWhiteLines(float angleVal,double areaMaxLimitVal, bool isActive);
+	void setFilterWhiteLines(float angleVal,double areaMaxLimitVal, bool isActive); // preferable values for angle -20 , max limit around 10 000 - 13 000
 	void setHoughLines(uchar thresholdVal, double maxLineGapVal, double minLineLengthVal, bool isActive);
 
 	void setContrastBool(bool active);
