@@ -128,8 +128,8 @@ namespace automotive {
             uint32_t sendCounter = 0; // Make sure that we don't send every loop
             uint32_t delayCounter = 0;  // Delay the send over serial on startup
             uint32_t portNumber = 0;
-            //int16_t oldSpeed = 1500;
-            //int16_t oldAngle = 90;
+            int16_t oldSpeed = 1500;
+            int16_t oldAngle = 90;
             size_t readSize = 1;  // Size of data to read from the serial port
             bool newCommand = false;
             string port = "/dev/ttyACM";
@@ -138,9 +138,9 @@ namespace automotive {
             bool serialOpen = false;
 
             // Try opening the serial connections, tries ports 0-4 automatically
-      			while(!serialOpen && portNumber < 4){
-      				string xport = port + to_string(portNumber);
-      				try {
+                while(!serialOpen && portNumber < 4){
+                    string xport = port + to_string(portNumber);
+                    try {
                 my_serial = unique_ptr<serial::Serial>(new Serial(xport, baud, serial::Timeout::simpleTimeout(1000)));
                 serialOpen = true;
                 cout << "Trying port " << xport << endl;
@@ -155,8 +155,8 @@ namespace automotive {
               } else {
                 cout << " No." << endl;
               }
-      				portNumber ++;
-      			}
+                    portNumber ++;
+                }
 
             while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
                 // Delay all communication for a short while to not overflow the arduino
@@ -164,71 +164,79 @@ namespace automotive {
                   delayCounter++;
                 } else {
                   // Capture frame.
-  		            if (m_camera.get() != NULL) {
-  		                odcore::data::image::SharedImage si = m_camera->capture();
+                    if (m_camera.get() != NULL) {
+                        odcore::data::image::SharedImage si = m_camera->capture();
 
-  		                Container c(si);
-  		                distribute(c);
-  		                captureCounter++;
-  		            }
+                        Container c(si);
+                        distribute(c);
+                        captureCounter++;
+                    }
 
                   // Create objects where we get speed and steering angle from
-  		            Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
-  		            VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
+                    Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
+                    VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
 
-  		            double vcSpeed = vc.getSpeed();
-  		            int16_t speedTemp = vcSpeed;
+                    double vcSpeed = vc.getSpeed();
+                    int16_t speedTemp = vcSpeed;
                   // Set the speed to constant values
-  		            if (vcSpeed > 0){
-  		              speedTemp = 1615;
-  		            } else if (vcSpeed < 0){
-  		              speedTemp = 1070;
-  		            } else {
-  		              speedTemp = 1500;
-  		            }
-  		            //vcSpeed = speedTemp;
+                    if (vcSpeed > 0){
+                      speedTemp = 1615;
+                    } else if (vcSpeed < 0){
+                      speedTemp = 1070;
+                    } else {
+                      speedTemp = 1500;
+                    }
+                    //vcSpeed = speedTemp;
 
-  		            double vcAngle = vc.getSteeringWheelAngle();
+                    double vcAngle = vc.getSteeringWheelAngle();
                   // Convert steering angle from radiants to degrees
-  		            int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
+                    int16_t vcDegree = (vcAngle * cartesian::Constants::RAD2DEG);
                   // Send the exact value we want to set steering at
-  		            if (vcDegree > 25){
-  		              vcDegree = 90 + 40;
-  		            } else if (vcDegree < -25){
-  		              vcDegree = 90 - 30;
-  		            } else {
-  		              vcDegree = 90 + vcDegree;
-  		            }
+                    if (vcDegree > 25){
+                      vcDegree = 90 + 40;
+                    } else if (vcDegree < -25){
+                      vcDegree = 90 - 30;
+                    } else {
+                      vcDegree = 90 + vcDegree;
+                    }
 
-  		            sendCounter++;  // Dont send to arduino every loop
-  		            //if(my_serial->isOpen() && sendCounter > 5 && (oldSpeed != speedTemp || oldAngle != vcDegree)){
-  		            if(my_serial->isOpen() && sendCounter > 5){
-                    sendOverSerial(speedTemp, vcDegree);
-  		              sendCounter = 0;
-  		             //oldSpeed = speedTemp;
-  		             //oldAngle = vcDegree;
-  		            }
+                    sendCounter++;  // Dont send to arduino every loop
+                    
+                  bool same_values = (oldSpeed == speedTemp) && double_equals(oldAngle,vcDegree);
+
+                  if(sendCounter > 5 && my_serial->isOpen()) {
+                    if(!same_values){
+                      sendCounter = 0;
+                      oldSpeed = speedTemp;
+                      oldAngle = vcDegree;
+                      sendOverSerial(oldSpeed, oldAngle);
+                    } else if (sendCounter > 50) {
+                      sendCounter = 0;
+                      sendOverSerial(oldSpeed, oldAngle);
+                    }
+                  }
+
                   // Read to a buffer for incoming data
-  		            while (my_serial->available() > 0){
-  		              string c = my_serial->read(readSize);
-  		              result += c;
-  		              if (c == ","){
-  		                newCommand = true; // When a full netstring has arrived
-  		              }
-  		            if (newCommand){
-  		              string decoded = netstrings.decodeNetstring(result);
-  		              sbdDistribute(decoded); // Distribute SensorBoardData
+                    while (my_serial->available() > 0){
+                      string c = my_serial->read(readSize);
+                      result += c;
+                      if (c == ","){
+                        newCommand = true; // When a full netstring has arrived
+                      }
+                    if (newCommand){
+                      string decoded = netstrings.decodeNetstring(result);
+                      sbdDistribute(decoded); // Distribute SensorBoardData
                     vdDistribute(decoded); // Distribute VehicleData
-  		              newCommand = false;
-  		              result = ""; // clear buffer
-  		            }
-		            }
+                      newCommand = false;
+                      result = ""; // clear buffer
+                    }
+                    }
               }
-		     }
+             }
 
-		        cout << "Proxy: Captured " << captureCounter << " frames." << endl;
+                cout << "Proxy: Captured " << captureCounter << " frames." << endl;
 
-		        return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
+                return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;
         }
 
         // Send netstring to Arduino
@@ -322,5 +330,11 @@ namespace automotive {
           Container c2(sbd);
           getConference().send(c2);
         }
+        // source: http://stackoverflow.com/questions/18971533/c-comparison-of-two-double-values-not-working-properly
+        bool Proxy::double_equals(double a, double b)
+        { 
+          return std::abs(a - b) < 0.001;
+        }
+
     }
 } // automotive::miniature

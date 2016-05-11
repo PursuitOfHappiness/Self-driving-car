@@ -39,15 +39,10 @@ namespace automotive {
         }
 
         void Proxy::setUp() {
-            //m_sbd = std::shared_ptr<SensorBoardData>SensorBoardData();
-
-            // m_sbdMutex = std::shared_ptr<odcore::wrapper::Mutex>(odcore::wrapper::MutexFactory::createMutex());
-
             if (getFrequency() < 20) {
                 cerr << endl << endl << "Proxy: WARNING! Running proxy with a LOW frequency (consequence: data updates are too seldom and will influence your algorithms in a negative manner!) --> suggestions: --freq=20 or higher! Current frequency: " << getFrequency() << " Hz." << endl << endl << endl;
             }
 
-            // Set up NetstringProtocol
             try {
                 m_nsp = new CustomNetstringsProtocol();
                 m_nsp->setStringSender(this); // Who should receive encoded messages
@@ -56,7 +51,6 @@ namespace automotive {
                 cerr << "Error while setting up NetstringProtocol: " << exception << endl;
             }
 
-            // Set up SerialPort
             try {
                 cout << "Setting up port" << endl;
                 //const string SERIAL_PORT = "/dev/ttyACM0";
@@ -66,7 +60,7 @@ namespace automotive {
                 const uint32_t BAUD_RATE = 9600;
 
                 m_serial = std::unique_ptr<odcore::wrapper::SerialPort>{odcore::wrapper::SerialPortFactory::createSerialPort(SERIAL_PORT, BAUD_RATE)};
-                //m_serial = std::shared_ptr<odcore::wrapper::DebugSerialPort>{new DebugSerialPort(SERIAL_PORT, BAUD_RATE)};
+                
                 m_serial->setStringListener(m_nsp);
                 m_serial->start();
 
@@ -77,20 +71,13 @@ namespace automotive {
         }
 
         void Proxy::tearDown() {
-
+            if(m_serial){
+                m_serial->stop();
+                m_serial = NULL;
+            }
             if(m_nsp){
                 m_nsp->setStringSender(NULL);
                 m_nsp = NULL;
-            } else {
-                cout << "WE GOT NO NSP!" << endl;
-            }
-            if(m_serial){
-                cout << "stopping m_serial" << endl;
-                m_serial->stop();
-                cout << "setting m_serial to null" << endl;
-                m_serial = NULL;
-            } else {
-                cout << "WE GOT NO SERIAL!" << endl;
             }
         }
 
@@ -121,67 +108,24 @@ namespace automotive {
 
         // This method will do the main data processing job.
         odcore::data::dmcp::ModuleExitCodeMessage::ModuleExitCode Proxy::body() {
-            int counter = 0;
-            while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
-                // cout << "2.1. About to lock" << endl;
-                // m_sbdMutex->lock();
-                // cout << "2.2. Locked" << endl;              
-                // cout << "the sbd is" << m_sbd->toString() << endl;
-                // cout << "2.3 About to unlock" << endl;
-                // m_sbdMutex->unlock();
-                // cout << "2.4 Unlocked" << endl;
+            while (getModuleStateAndWaitForRemainingTimeInTimeslice() == odcore::data::dmcp::ModuleStateMessage::RUNNING) {
 
                 Container containerVehicleControl = getKeyValueDataStore().get(automotive::VehicleControl::ID());
                 VehicleControl vc = containerVehicleControl.getData<VehicleControl>();
                 // TODO implement as per example:
-                //vc.toString() results in Speed: 0 Acceleration: 0 SteeringWheelAngle: 0 BrakeLights: 0 FlashingLightsLeft: 0 FlashingLightsRight: 0 
 
                 double vcAngle = vc.getSteeringWheelAngle();
-                double vcSpeed = vc.getSpeed();
+                double vcSpeed = vc.getSpeed();                
 
-                // use config file to set them
-                // Read config file only once in setup?
-                // m_in_min= -0.2;
-                // m_in_max = 0.2;
-                // m_out_min = 60;
-                // m_out_max = 120;
-
-                //int arduinoSteerValue = Proxy::arduino_map(vcAngle);
-
-                // Need to use map since the real arduino will need different vals
-
-                if(vcAngle < 0.5 && vcAngle >= 0){
-                    vcAngle = vcAngle + 0.001;
-                } else {
-                    vcAngle = 0;
-                }
-
-                if(vcSpeed < 10 && vcSpeed >= 0){
-                    vcSpeed = vcSpeed + 0.01;
-                } else {
-                    vcSpeed = 0;
-                }
-
-                vcSpeed = counter;
-                vcAngle = counter;
-                counter++;
-                
-
-                std::string DELIM_KEY_VALUE = "=";
                 std::string DELIM_PAIR = ";";
-                std::string SPEED_KEY = "speed";
-                std::string ANGLE_KEY = "angle";
                 // -- end of constants
 
                 std::stringstream strStream;
 
-                strStream << SPEED_KEY << DELIM_KEY_VALUE << vcAngle << DELIM_PAIR;
-                strStream << ANGLE_KEY << DELIM_KEY_VALUE << vcSpeed << DELIM_PAIR;
+                strStream << vcSpeed << DELIM_PAIR << vcAngle;
 
                 m_nsp->send(strStream.str());
-
-                //vcAngle = vcAngle + 0.05;
 
             }
             return odcore::data::dmcp::ModuleExitCodeMessage::OKAY;

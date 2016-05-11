@@ -79,6 +79,7 @@ namespace automotive {
                 void sendOverSerial(const int16_t, const int16_t);
                 void vdDistribute(const string);
                 void sbdDistribute(const string);
+                bool double_equals(double a, double b);
 
             private:
                 unique_ptr<odtools::recorder::Recorder> m_recorder;
