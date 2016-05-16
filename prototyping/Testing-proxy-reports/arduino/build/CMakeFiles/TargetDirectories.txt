@@ -1,2 +1,0 @@
-/home/chap/OpenDaVINCI/automotive/miniature/arduino/build/CMakeFiles/arduino.dir
-/home/chap/OpenDaVINCI/automotive/miniature/arduino/build/CMakeFiles/arduinolib-static.dir

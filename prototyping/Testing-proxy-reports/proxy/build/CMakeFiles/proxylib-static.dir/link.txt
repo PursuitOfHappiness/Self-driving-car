@@ -1,2 +1,0 @@
-/usr/bin/ar cr libproxylib-static.a  CMakeFiles/proxylib-static.dir/src/Proxy.cpp.o CMakeFiles/proxylib-static.dir/src/CustomNetstringsProtocol.cpp.o CMakeFiles/proxylib-static.dir/src/Camera.cpp.o CMakeFiles/proxylib-static.dir/src/OpenCVCamera.cpp.o CMakeFiles/proxylib-static.dir/src/uEyeCamera.cpp.o
-/usr/bin/ranlib libproxylib-static.a
