@@ -1,5 +1,6 @@
 /**
- * lanefollower - Sample application for following lane markings.
+ * Rachele Mello
+ * Based on: lanefollower - Sample application for following lane markings.
  * Copyright (C) 2012 - 2015 Christian Berger
  *
  * This program is free software; you can redistribute it and/or
@@ -119,6 +120,12 @@ namespace automotive {
                 void drawLines(int32_t y, cv::Point left, cv::Point right);
 
                 double findDeviation();
+
+                cv::Point findLeftPixel(cv::Point left, int32_t y, int prev_left_x);
+
+                cv::Point findRightPixel(cv::Point right, int32_t y, int prev_right_x);
+
+                double findDeviationAtCSL(cv::Point right, cv::Point left);
 
                 void measuringMachine();
 
