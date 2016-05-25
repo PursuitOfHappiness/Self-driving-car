@@ -1,4 +1,5 @@
 /**
+ * Rachele Mello
  * Based on: lanefollower - Sample application for following lane markings.
  * Copyright (C) 2012 - 2015 Christian Berger
  *
@@ -155,66 +156,83 @@ namespace automotive {
             for(int32_t y = m_image.rows - 8; y > m_image.rows * .6; y -= 10) {
                 
                 // Search from middle to the left:
-                cv::Vec3b pixelLeft;
                 cv::Point left;
-                left.y = y;
-                left.x = prev_left_x;
-
-                for(int x = m_image.cols/2; x > 0; x--) {
-                    pixelLeft = m_image.at<cv::Vec3b>(y, x);
-                    int B = pixelLeft.val[0];
-                    int G = pixelLeft.val[1];
-                    int R = pixelLeft.val[2];
-                    if(B >=220 && G >= 220 && R >= 220){
-                        std::cout << "Left Higher than 220" << std::endl;
-                        left.x = x;
-                        prev_left_x = x;
-                        break;
-                    }
-                }
+                left = findLeftPixel(left, y, prev_left_x);
 
                 // Search from middle to the right:
-                cv::Vec3b pixelRight;
                 cv::Point right;
-                right.y = y;
-                right.x = prev_right_x;
-
-                for(int x = m_image.cols/2; x < m_image.cols; x++) {
-                    pixelRight = m_image.at<cv::Vec3b>(y, x);
-                    int B = pixelRight.val[0];
-                    int G = pixelRight.val[1];
-                    int R = pixelRight.val[2];
-                    if (B >= 220 && G >= 220 && R >= 220){
-                        std::cout << "Left Higher than 220" << std::endl;
-                        right.x = x;
-                        prev_right_x = x;
-                        break;
-                    }
-                }
+                right = findRightPixel(right, y, prev_right_x);
+                
 
                 if (m_debug) {
                     drawLines(y, left, right);
                 }
 
                 if (y == CONTROL_SCANLINE) {
-                    // Calculate the deviation error.
-                    if (right.x > 0) {
-                        cerr << "RIGHT" << endl;
-                        e = ((right.x - m_image.cols/2.0) - distance)/distance;
-                    }
-                    else if (left.x > 0) {
-                        cerr << "LEFT" << endl;
-                        e = (distance - (m_image.cols/2.0 - left.x))/distance;
-                    }
-                    else {
-                        e = 0;
-                        no_lines = true;
-                        cerr << "NONE" << endl;
-                    }
+                    e = findDeviationAtCSL(right, left);
                 }
             }
             cerr << "DEVIATION FOUND = " << e << endl;
             return e;
+        }
+
+        cv::Point LaneFollower::findLeftPixel(cv::Point left, int32_t y, int prev_left_x) {
+            cv::Vec3b pixelLeft;
+            left.y = y;
+            left.x = prev_left_x;
+
+            for(int x = m_image.cols/2; x > 0; x--) {
+                pixelLeft = m_image.at<cv::Vec3b>(y, x);
+                int B = pixelLeft.val[0];
+                int G = pixelLeft.val[1];
+                int R = pixelLeft.val[2];
+                if(B >=220 && G >= 220 && R >= 220){
+                    std::cout << "Left Higher than 220" << std::endl;
+                    left.x = x;
+                    prev_left_x = x;
+                    break;
+                }
+            }
+            return left;
+        }
+
+        cv::Point LaneFollower::findRightPixel(cv::Point right, int32_t y, int prev_right_x) {
+            cv::Vec3b pixelRight;
+            right.y = y;
+            right.x = prev_right_x;
+
+            for(int x = m_image.cols/2; x < m_image.cols; x++) {
+                pixelRight = m_image.at<cv::Vec3b>(y, x);
+                int B = pixelRight.val[0];
+                int G = pixelRight.val[1];
+                int R = pixelRight.val[2];
+                if (B >= 220 && G >= 220 && R >= 220){
+                    std::cout << "Left Higher than 220" << std::endl;
+                    right.x = x;
+                    prev_right_x = x;
+                    break;
+                }
+            }
+            return right;
+        }
+
+        double LaneFollower::findDeviationAtCSL(cv::Point right, cv::Point left) {
+            double e =0;
+            if (right.x > 0) {
+                    cerr << "RIGHT" << endl;
+                    e = ((right.x - m_image.cols/2.0) - distance)/distance;
+                }
+            else if (left.x > 0) {
+                cerr << "LEFT" << endl;
+                e = (distance - (m_image.cols/2.0 - left.x))/distance;
+            }
+            else {
+                e = 0;
+                no_lines = true;
+                cerr << "NONE" << endl;
+            }
+            return e;    
+
         }
 
         void LaneFollower::processImage() {
@@ -223,7 +241,6 @@ namespace automotive {
             m_proc.processImage(m_image); //Process the m_image
             cv::cvtColor(m_image, m_image, CV_GRAY2RGB); //make the image 3 channel to paint the lines
             double e = findDeviation();
-            cerr << "DEVIATION RECEIVED = " << e << endl;
 
             TimeStamp currentTime;
 
@@ -257,18 +274,18 @@ namespace automotive {
                 m_vehicleControl.setSteeringWheelAngle(desiredSteering);
                 cerr << "PID: " << "e = " << e << ", eSum = " << m_eSum << ", desiredSteering = " << desiredSteering << ", y = " << y << ", speed = " << speed << endl;
             } else {
-                m_vehicleControl.setSpeed(0.5); //super slow down when there are no lines
+                m_vehicleControl.setSpeed(0.2); //super slow down when there are no lines
             }
         }
 
         void LaneFollower::measuringMachine() {
+            // Names of stages have been kept the same as in the simulation code, but do not reflect the behaviour.
+
             const int32_t ULTRASONIC_FRONT_CENTER = 3;
             const int32_t ULTRASONIC_FRONT_RIGHT = 4;
-            const int32_t INFRARED_FRONT_RIGHT = 0;
-            const int32_t INFRARED_REAR_RIGHT = 2;
+            const double OVERTAKING_DISTANCE = 47; // pre-calibrated value
 
-            const double OVERTAKING_DISTANCE = 6; //use 6
-            const double HEADING_PARALLEL = 0.01;
+            const double TURNING = 50; // pre-calibrated value
             
             // 1. Get most recent vehicle data:
             Container containerVehicleData = getKeyValueDataStore().get(VehicleData::ID());
@@ -310,21 +327,18 @@ namespace automotive {
             }
             
             else if (stageMeasuring == HAVE_BOTH_IR) {
-                // Remain in this stage until both IRs see something.
-                if ( (sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT) > 0) && (sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT) > 0) ) {
+                if ( stageToRightLaneRightTurn > TURNING  ) {
                     // Turn to right.
+                    cerr << "turning right" << endl;
                     stageMoving = TO_LEFT_LANE_RIGHT_TURN;
                 }
             }
     
             else if (stageMeasuring == HAVE_BOTH_IR_SAME_DISTANCE) {
-                // Remain in this stage until both IRs have the similar distance to obstacle (i.e. turn car)
-                // and the driven parts of the turn are plausible.
-                const double IR_FR = sbd.getValueForKey_MapOfDistances(INFRARED_FRONT_RIGHT);
-                const double IR_RR = sbd.getValueForKey_MapOfDistances(INFRARED_REAR_RIGHT);
 
-                if ((fabs(IR_FR - IR_RR) < HEADING_PARALLEL) && ((stageToRightLaneLeftTurn - stageToRightLaneRightTurn) > 20)) {
+                if (stageToRightLaneLeftTurn > TURNING) {
                      // Straight forward again.
+                    cerr<<"both IR"<<endl;
                     stageMoving = CONTINUE_ON_LEFT_LANE;
                 }
             }
@@ -345,7 +359,9 @@ namespace automotive {
         }
 
         void LaneFollower::movingMachine(bool has_next_frame) {
-            const double SPEED_SLOW = 0.5;
+            // Names of stages have been kept the same as in the simulation code, but do not reflect the behaviour.
+
+            const double SPEED_SLOW = 0.1;
             // 1. Get most recent vehicle data:
             Container containerVehicleData = getKeyValueDataStore().get(VehicleData::ID());
             VehicleData vd = containerVehicleData.getData<VehicleData> ();
@@ -363,53 +379,53 @@ namespace automotive {
             }
 
             else if (stageMoving == TO_LEFT_LANE_LEFT_TURN) {
-                // Move to the left lane: Turn left part until both IRs see something.
+                // Move to the left lane.
                 m_vehicleControl.setSpeed(SPEED_SLOW);
-                m_vehicleControl.setSteeringWheelAngle(-10);
+                m_vehicleControl.setSteeringWheelAngle(-25);
 
-                // State machine measuring: Both IRs need to see something before leaving this moving state.
+                
                 stageMeasuring = HAVE_BOTH_IR;
 
                 stageToRightLaneRightTurn++;
             }
 
             else if (stageMoving == TO_LEFT_LANE_RIGHT_TURN) {
-                // Follow lane
-                processImage();
+                m_vehicleControl.setSteeringWheelAngle(25);
+                cerr<<"ANGLE = "<< stageToRightLaneRightTurn << endl;
 
-                // State machine measuring: Both IRs need to have the same distance before leaving this moving state.
                 stageMeasuring = HAVE_BOTH_IR_SAME_DISTANCE;
 
                 stageToRightLaneLeftTurn++;
             }
 
             else if (stageMoving == CONTINUE_ON_LEFT_LANE) {
-                // Move to the left lane: Follow lane
-                processImage();
+                // Move to the left lane
+                m_vehicleControl.setSteeringWheelAngle(0);
 
                 // Find end of object.
                 stageMeasuring = END_OF_OBJECT;
             }
 
             else if (stageMoving == TO_RIGHT_LANE_RIGHT_TURN) {
-                // Move to the right lane: Turn right part.
+                // Move to the right lane
                 m_vehicleControl.setSpeed(SPEED_SLOW);
-                m_vehicleControl.setSteeringWheelAngle(10);
-
+                m_vehicleControl.setSteeringWheelAngle(25);
                 stageToRightLaneRightTurn--;
-                if (stageToRightLaneRightTurn < -10) {
+
+                if (stageToRightLaneRightTurn < 0) {
                     stageMoving = TO_RIGHT_LANE_LEFT_TURN;
                 }
             }
 
             else if (stageMoving == TO_RIGHT_LANE_LEFT_TURN) {
-                // Move to the left lane: Turn left part.
+                // Move to the left lane
                 m_vehicleControl.setSpeed(SPEED_SLOW);
-                m_vehicleControl.setSteeringWheelAngle(-10);
+                m_vehicleControl.setSteeringWheelAngle(-25);
 
                 stageToRightLaneLeftTurn--;
-                if (stageToRightLaneLeftTurn ==0) {
+                if (stageToRightLaneLeftTurn <0) {
                     // Start over.
+                    m_vehicleControl.setSteeringWheelAngle(0);
                     stageMoving = FORWARD;
                     overtake = false;
                     stageMeasuring = FIND_OBJECT_INIT;
