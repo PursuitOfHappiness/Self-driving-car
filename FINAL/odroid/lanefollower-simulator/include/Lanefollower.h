@@ -1,5 +1,6 @@
 /**
- * lanefollower - Sample application for following lane markings.
+ * Rachele Mello
+ * Based on: lanefollower - Sample application for following lane markings.
  * Copyright (C) 2012 - 2015 Christian Berger
  *
  * This program is free software; you can redistribute it and/or
@@ -29,6 +30,7 @@
 
 #include "automotivedata/GeneratedHeaders_AutomotiveData.h"
 #include "opendavinci/GeneratedHeaders_OpenDaVINCI.h"
+#include "imageProcessLib.h"
 
 namespace automotive {
     namespace miniature {
@@ -84,7 +86,7 @@ namespace automotive {
             private:
 	            bool m_hasAttachedToSharedImageMemory;
 	            std::shared_ptr<odcore::wrapper::SharedMemory> m_sharedImageMemory;
-	            IplImage *m_image;
+            cv::Mat m_image;
                 bool m_debug;
                 CvFont m_font;
 
@@ -92,9 +94,20 @@ namespace automotive {
                 double m_eSum;
                 double m_eOld;
 				double midLane;
-				bool firstMeasure;
+				int distance;
 				bool no_lines;
 				bool overtake;
+        		imageProcess m_proc;
+
+        		// Overall state machines for moving and measuring.
+        		enum StateMachineMoving { FORWARD, TO_LEFT_LANE_LEFT_TURN, TO_LEFT_LANE_RIGHT_TURN, CONTINUE_ON_LEFT_LANE, TO_RIGHT_LANE_RIGHT_TURN, TO_RIGHT_LANE_LEFT_TURN };
+            	enum StateMachineMeasuring { DISABLE, FIND_OBJECT_INIT, FIND_OBJECT, FIND_OBJECT_PLAUSIBLE, HAVE_BOTH_IR, HAVE_BOTH_IR_SAME_DISTANCE, END_OF_OBJECT };
+            	StateMachineMoving stageMoving;
+            	StateMachineMeasuring stageMeasuring;
+            	int32_t stageToRightLaneRightTurn;
+            	int32_t stageToRightLaneLeftTurn;
+            	double distanceToObstacle;
+            	double distanceToObstacleOld;
 
                 automotive::VehicleControl m_vehicleControl;
 
@@ -104,7 +117,19 @@ namespace automotive {
 
                 void processImage();
 
+                void drawLines(int32_t y, cv::Point left, cv::Point right);
+
                 double findDeviation();
+
+                cv::Point findLeftPixel(cv::Point left, int32_t y, int prev_left_x);
+
+                cv::Point findRightPixel(cv::Point right, int32_t y, int prev_right_x);
+
+                double findDeviationAtCSL(cv::Point right, cv::Point left);
+
+                void measuringMachine();
+
+                void movingMachine(bool has_next_frame);
         };
 
     }
