@@ -108,7 +108,7 @@ namespace automotive {
 
 					    stage++;
 					    stageMoving++;
-					    firstStageDistance = 5;
+					    firstStageDistance = 10;
 
 					  }
 
